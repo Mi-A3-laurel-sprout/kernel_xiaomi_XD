@@ -273,7 +273,7 @@ void uvc_simplify_fraction(uint32_t *numerator, uint32_t *denominator,
 		return;
 
 	/* Convert the fraction to a simple continued fraction. See
-	 * http://mathforum.org/dr.math/faq/faq.fractions.html
+	 * https://mathforum.org/dr.math/faq/faq.fractions.html
 	 * Stop if the current term is bigger than or equal to the given
 	 * threshold.
 	 */
