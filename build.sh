@@ -17,7 +17,7 @@ DATE=$(date +"%d%m%Y")
 TIME=$(date +"-%H.%M.%S")
 KERNEL_NAME="NoName"
 DEVICE="-laurel_sprout-"
-FINAL_ZIP="$KERNEL_NAME""$DEVICE""$DATE""$TIME"
+FINAL_ZIP="$KERNEL_NAME""$DEVICE""$DATE"
 
 BUILD_START=$(date +"%s")
 
