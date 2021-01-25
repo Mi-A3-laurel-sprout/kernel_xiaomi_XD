@@ -389,7 +389,7 @@
 	};
 
 	chosen {
-		bootargs = "quiet noirqdebug rcu_nocbs=0-7";
+		bootargs = "quiet noirqdebug rcu_nocbs=0-7 nosoftlockup mce=ignore_ce";
 	};
 
 	soc: soc { };
