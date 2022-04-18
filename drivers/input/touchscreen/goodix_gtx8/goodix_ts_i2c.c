@@ -3,7 +3,7 @@
  * Hardware interface layer of touchdriver architecture.
  *
  * Copyright (C) 2015 - 2016 Goodix, Inc.
- * Copyright (C) 2020 XiaoMi, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Authors:  Yulong Cai <caiyulong@goodix.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1901,7 +1901,7 @@ static int goodix_event_handler(struct goodix_ts_device *dev,
 	/* buffer[0]: event state */
 	event_sta = pre_buf[0];
 	event_sta_sign = pre_buf[0];
-	ts_debug("event_sta=%02x;", event_sta);
+	//ts_debug("event_sta=%02x;", event_sta);
 
 	if (likely((event_sta & GOODIX_TOUCH_EVENT) == GOODIX_TOUCH_EVENT)) {
 		/*handle touch event*/

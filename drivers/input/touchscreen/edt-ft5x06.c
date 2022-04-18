@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Simon Budig, <simon.budig@kernelconcepts.de>
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Daniel Wagener <daniel.wagener@kernelconcepts.de> (M09 firmware support)
  * Lothar Waßmann <LW@KARO-electronics.de> (DT support)
  *

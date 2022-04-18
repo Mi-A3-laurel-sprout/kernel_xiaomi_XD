@@ -3,7 +3,7 @@
   * Core layer of touchdriver architecture.
   *
   * Copyright (C) 2015 - 2016 Goodix, Inc.
-  * Copyright (C) 2020 XiaoMi, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
   * Authors:  Yulong Cai <caiyulong@goodix.com>
   *
   * This program is free software; you can redistribute it and/or modify
@@ -1606,7 +1606,7 @@ static int goodix_ts_suspend(struct goodix_ts_core *core_data)
 	struct goodix_ts_device *ts_dev = core_data->ts_dev;
 	int r;
 
-    msleep(300);
+    msleep(600);
     ts_info("Suspend start.");
 
 	/*
@@ -2156,7 +2156,6 @@ static struct platform_driver goodix_ts_driver = {
 	.driver = {
 		.name = GOODIX_CORE_DRIVER_NAME,
 		.owner = THIS_MODULE,
-		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 #ifdef CONFIG_PM
 		.pm = &dev_pm_ops,
 #endif
