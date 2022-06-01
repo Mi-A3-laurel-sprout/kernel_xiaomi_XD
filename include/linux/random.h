@@ -26,7 +26,7 @@ static inline void add_latent_entropy(void)
 	add_device_randomness((const void *)&latent_entropy, sizeof(latent_entropy));
 }
 #else
-	add_device_randomness(NULL, 0);
+static inline void add_latent_entropy(void) { }
 #endif
 
 extern void get_random_bytes(void *buf, size_t nbytes);
