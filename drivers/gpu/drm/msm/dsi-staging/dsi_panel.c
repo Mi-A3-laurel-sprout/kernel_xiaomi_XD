@@ -1941,6 +1941,8 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dimming-brightness-command",
 	"qcom,mdss-dsi-brightness-command",
 	"qcom,mdss-dsi-dimming-enable-command",
+	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command",
+	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command",
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command",
 };
@@ -1979,6 +1981,8 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dimming-brightness-command-state",
 	"qcom,mdss-dsi-brightness-command-state",
 	"qcom,mdss-dsi-dimming-enable-command-state",
+	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command-state",
+	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command-state",
 };
