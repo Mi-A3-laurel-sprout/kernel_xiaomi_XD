@@ -10,7 +10,7 @@ blue='\033[0;34m'
 default='\033[0m'
 
 # Define variables
-CLANG_DIR=$HOME/oem/drive2/syb13/prebuilts/clang/host/linux-x86/clang-r450784d
+CLANG_DIR=$HOME/drive2/syb13/prebuilts/clang/host/linux-x86/clang-r450784d
 KERNEL_DIR=$PWD
 Anykernel_DIR=$KERNEL_DIR/AnyKernel3/
 DATE=$(date +"%d%m%Y")
@@ -32,7 +32,7 @@ echo -e "***********************************************"
 # Finally build it
 mkdir -p out
 make O=out ARCH=arm64 vendor/laurel_sprout-perf_defconfig
-make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- Image.gz-dtb dtbo.img
+make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=$CLANG_DIR/bin/llvm- LLVM=1 LLVM_IAS=1 Image.gz-dtb dtbo.img
 
 echo -e "$yellow***********************************************"
 echo  "                Zipping Kernel                     "
