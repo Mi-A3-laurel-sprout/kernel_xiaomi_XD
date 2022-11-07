@@ -284,6 +284,7 @@ static int __init ssbd_cfg(char *buf)
 }
 early_param("ssbd", ssbd_cfg);
 
+#ifdef CONFIG_ARM64_SSBD
 void __init arm64_update_smccc_conduit(struct alt_instr *alt,
 				       __le32 *origptr, __le32 *updptr,
 				       int nr_inst)
@@ -305,20 +306,7 @@ void __init arm64_update_smccc_conduit(struct alt_instr *alt,
 
 	*updptr = cpu_to_le32(insn);
 }
-
-void __init arm64_enable_wa2_handling(struct alt_instr *alt,
-				      __le32 *origptr, __le32 *updptr,
-				      int nr_inst)
-{
-	BUG_ON(nr_inst != 1);
-	/*
-	 * Only allow mitigation on EL1 entry/exit and guest
-	 * ARCH_WORKAROUND_2 handling if the SSBD state allows it to
-	 * be flipped.
-	 */
-	if (arm64_get_ssbd_state() == ARM64_SSBD_KERNEL)
-		*updptr = cpu_to_le32(aarch64_insn_gen_nop());
-}
+#endif	/* CONFIG_ARM64_SSBD */
 
 void arm64_set_ssbd_mitigation(bool state)
 {
@@ -778,6 +766,13 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 				  15, 15),
 	},
 #endif
+	{
+		.desc = "Spectre-BHB",
+		.capability = ARM64_SPECTRE_BHB,
+		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
+		.matches = is_spectre_bhb_affected,
+		.cpu_enable = spectre_bhb_enable_mitigation,
+	},
 	{
 	}
 };
