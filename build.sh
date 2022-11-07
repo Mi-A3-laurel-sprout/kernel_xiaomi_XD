@@ -13,11 +13,12 @@ default='\033[0m'
 CLANG_DIR=$HOME/drive2/syb13/prebuilts/clang/host/linux-x86/clang-r450784d
 KERNEL_DIR=$PWD
 Anykernel_DIR=$KERNEL_DIR/AnyKernel3/
-DATE=$(date +"%d%m%Y")
+DATE=$(date +"-%d%m%Y")
 TIME=$(date +"-%H.%M.%S")
 KERNEL_NAME="NoName"
 DEVICE="-laurel_sprout-"
-FINAL_ZIP="$KERNEL_NAME""$DEVICE""$DATE"
+ANDROID_VER="[a12+a13]"
+FINAL_ZIP="$KERNEL_NAME""$ANDROID_VER""$DEVICE""$DATE"
 
 BUILD_START=$(date +"%s")
 
