@@ -26,7 +26,7 @@ BUILD_START=$(date +"%s")
 export TARGET_KERNEL_CLANG_COMPILE=true
 PATH="$CLANG_DIR/bin:${PATH}"
 
-echo -e "$green***********************************************"
+echo -e "***********************************************"
 echo  "          Compiling NoName Kernel              "
 echo -e "***********************************************"
 
