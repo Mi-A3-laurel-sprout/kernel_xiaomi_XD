@@ -2464,7 +2464,7 @@
 		BW_OPP_ENTRY(1017, 8); /* 7759 MB/s */
 		BW_OPP_ENTRY(1353, 8); /*10322 MB/s */
 		BW_OPP_ENTRY(1555, 8); /*11863 MB/s */
-		BW_OPP_ENTRY(1928, 8); /*14709 MB/s */
+		BW_OPP_ENTRY(1866, 8); /*14236 MB/s */
 	};
 
 	suspendable_ddr4_bw_opp_table: suspendable-ddr4-bw-opp-table {
@@ -2479,7 +2479,7 @@
 		BW_OPP_ENTRY(1017, 8); /* 7759 MB/s */
 		BW_OPP_ENTRY(1353, 8); /*10322 MB/s */
 		BW_OPP_ENTRY(1555, 8); /*11863 MB/s */
-		BW_OPP_ENTRY(1928, 8); /*14709 MB/s */
+		BW_OPP_ENTRY(1866, 8); /*14236 MB/s */
 	};
 
 	ddr3_bw_opp_table: ddr3-bw-opp-table {
@@ -2607,7 +2607,7 @@
 				<  902400 MHZ_TO_MBPS( 451, 8) >,
 				< 1401600 MHZ_TO_MBPS(1017, 8) >,
 				< 1804800 MHZ_TO_MBPS(1555, 8) >,
-				< 2016000 MHZ_TO_MBPS(1928, 8) >;
+				< 2016000 MHZ_TO_MBPS(1866, 8) >;
 		};
 	};
 
@@ -2683,7 +2683,7 @@
 				< 1056000 MHZ_TO_MBPS( 547, 8) >,
 				< 1401680 MHZ_TO_MBPS( 768, 8) >,
 				< 1804800 MHZ_TO_MBPS(1017, 8) >,
-				< 2016000 MHZ_TO_MBPS(1928, 8) >;
+				< 2016000 MHZ_TO_MBPS(1866, 8) >;
 		};
 	};
 
