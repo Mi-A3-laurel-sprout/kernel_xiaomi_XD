@@ -35,7 +35,7 @@
 		opp-1017 { opp-hz = /bits/ 64 < 7759 >;  }; /*  8.1017 MHz */
 		opp-1353 { opp-hz = /bits/ 64 < 10322 >; }; /*  9.1353 MHz */
 		opp-1555 { opp-hz = /bits/ 64 < 11863 >; }; /* 10.1555 MHz */
-		opp-1866 { opp-hz = /bits/ 64 < 14709 >; }; /* 11.1928 MHz */
+		opp-1866 { opp-hz = /bits/ 64 < 14236 >; }; /* 11.1866 MHz */
 	};
 
 	gpubw: qcom,gpubw {
@@ -109,7 +109,7 @@
 			<26 512 0 8136000>,   /*  8 bus=1017 (SVS_L1)  */
 			<26 512 0 10824000>,  /*  9 bus=1353 (NOM)     */
 			<26 512 0 12440000>,  /* 10 bus=1555 (NOM)     */
-			<26 512 0 15424000>;  /* 11 bus=1928 (TURBO)   */
+			<26 512 0 14928000>;  /* 11 bus=1866 (TURBO)   */
 
 		/* GDSC regulator names */
 		regulator-names = "vddcx", "vdd";
