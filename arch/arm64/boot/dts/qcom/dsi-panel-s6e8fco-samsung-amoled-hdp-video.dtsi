@@ -80,6 +80,9 @@
 		qcom,mdss-pan-physical-height-dimension = <140>;
 		qcom,mdss-dsi-pan-enable-dynamic-fps;
 		qcom,dsi-supported-dfps-list = <66 60 30>;
+		qcom,disp-doze-lbm-backlight = <15>;
+		qcom,disp-doze-hbm-backlight = <190>;
+
 		qcom,mdss-dsi-display-timings {
 			timing@0 {
 				qcom,mdss-dsi-panel-width = <720>;
