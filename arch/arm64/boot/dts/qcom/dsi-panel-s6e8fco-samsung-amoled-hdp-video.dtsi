@@ -78,6 +78,31 @@
 		qcom,mdss-pan-physical-height-dimension = <140>;
 		qcom,mdss-dsi-pan-enable-dynamic-fps;
 		qcom,dsi-supported-dfps-list = <66 60 30>;
+		
+		qcom,disp-fod-dim-lut = <
+			/* brightness, alpha */
+			6	0xF4
+			26	0xE9
+			62	0xDF
+			116	0xD5
+			192	0xCA
+			286	0xC0
+			400	0xB5
+			538	0xAB
+			696	0xA0
+			878	0x96
+			1102	0x8A
+			1334	0x80
+			1588	0x75
+			1868	0x6B
+			2172	0x60
+			2500	0x56
+			2854	0x4B
+			3236	0x41
+			3642	0x36
+			4095	0x2B
+		>;
+
 		qcom,mdss-dsi-display-timings {
 			timing@0 {
 				qcom,mdss-dsi-panel-width = <720>;
