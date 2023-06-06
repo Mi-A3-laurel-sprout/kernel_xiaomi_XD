@@ -586,6 +586,9 @@ static int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
+extern bool is_dimlayer_hbm_enabled;
+bool last_dimlayer_hbm_enabled;
+bool last_dimlayer_status;
 void sde_connector_update_fod_hbm(struct drm_connector *connector)
 {
 	static atomic_t effective_status = ATOMIC_INIT(false);
@@ -614,8 +617,14 @@ void sde_connector_update_fod_hbm(struct drm_connector *connector)
 	if (atomic_xchg(&effective_status, status) == status)
 		return;
 
+	if (last_dimlayer_hbm_enabled == is_dimlayer_hbm_enabled &&
+			status == last_dimlayer_status)
+		return;
+
 	mutex_lock(&display->panel->panel_lock);
 	dsi_panel_set_fod_hbm(display->panel, status);
+	last_dimlayer_hbm_enabled = is_dimlayer_hbm_enabled;
+	last_dimlayer_status = status;
 	mutex_unlock(&display->panel->panel_lock);
 
 	dsi_display_set_fod_ui(display, status);

@@ -5483,12 +5483,41 @@ static ssize_t sysfs_fod_ui_read(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", status);
 }
 
+bool is_dimlayer_hbm_enabled;
+static ssize_t dimlayer_hbm_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct dsi_display *display = dev_get_drvdata(dev);
+	if (!display->panel)
+		return 0;
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", is_dimlayer_hbm_enabled);
+}
+
+static ssize_t dimlayer_hbm_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = 0;
+	struct dsi_display *display = dev_get_drvdata(dev);
+	if (!display->panel)
+		return ret;
+
+	sscanf(buf, "%d", &ret);
+
+	is_dimlayer_hbm_enabled = ret > 0;
+
+	return count;
+}
+
 static DEVICE_ATTR(fod_ui, 0444,
 			sysfs_fod_ui_read,
 			NULL);
 
+DEVICE_ATTR_RW(dimlayer_hbm);
+
 static struct attribute *display_fs_attrs[] = {
 	&dev_attr_fod_ui.attr,
+	&dev_attr_dimlayer_hbm.attr,
 	NULL,
 };
 static struct attribute_group display_fs_attrs_group = {

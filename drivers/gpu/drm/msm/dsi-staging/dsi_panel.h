@@ -377,5 +377,5 @@ void dsi_panel_ext_bridge_put(struct dsi_panel *panel);
 int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status);
 
 u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
-
+extern u32 fod_dim_bl_lvl;
 #endif /* _DSI_PANEL_H_ */

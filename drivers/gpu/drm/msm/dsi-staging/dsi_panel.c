@@ -808,6 +808,7 @@ int dsi_panel_set_dimming_brightness(struct dsi_panel *panel, u8 dimming, u32 br
 	return rc;
 }
 
+u32 fod_dim_bl_lvl;
 static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
 {
 	return panel->bl_config.bl_level;
@@ -865,6 +866,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	int rc = 0;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 	usbchg_lcd_brightness = bl_lvl;
+	fod_dim_bl_lvl = bl_lvl;
 
 	if ((bl_lvl < bl->bl_min_level) && (bl_lvl != 0))
 		bl_lvl = bl->bl_min_level;
@@ -4638,6 +4640,7 @@ int dsi_panel_post_switch(struct dsi_panel *panel)
 	return rc;
 }
 
+extern bool is_dimlayer_hbm_enabled;
 int dsi_panel_enable(struct dsi_panel *panel)
 {
 	int rc = 0;
