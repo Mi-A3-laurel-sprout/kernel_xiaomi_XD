@@ -78,7 +78,9 @@
 		qcom,mdss-pan-physical-height-dimension = <140>;
 		qcom,mdss-dsi-pan-enable-dynamic-fps;
 		qcom,dsi-supported-dfps-list = <66 60 30>;
-		
+
+		qcom,disp-fod-off-dimming-delay = <85>;
+		qcom,disp-dc-dimlayer-backlight = <255>;
 		qcom,disp-fod-dim-lut = <
 			/* brightness, alpha */
 			6	0xF4
@@ -101,6 +103,33 @@
 			3236	0x41
 			3642	0x36
 			4095	0x2B
+		>;
+
+		qcom,disp-bl-dim-lut = <
+			/* brightness, alpha */
+			0	0xFF
+			1	0xE0
+			2	0xD6
+			3	0xD5
+			4	0xCf
+			5	0xCb
+			6	0xC9
+			8	0xC5
+			10	0xC1
+			15	0xB6
+			20	0xAc
+			30	0x9D
+			45	0x82
+			70	0x6C
+			100	0x56
+			120	0x47
+			140	0x3A
+			160	0x2F
+			180	0x22
+			200	0x16
+			220	0x0E
+			240	0x06
+			255	0x00
 		>;
 
 		qcom,mdss-dsi-display-timings {
