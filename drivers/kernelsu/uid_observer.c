@@ -29,7 +29,7 @@ static bool is_uid_exist(uid_t uid, void *data)
 
 	bool exist = false;
 	list_for_each_entry (np, list, list) {
-		if (np->uid == uid) {
+		if (np->uid == uid % 100000) {
 			exist = true;
 			break;
 		}
@@ -56,13 +56,13 @@ static void do_update_uid(struct work_struct *work)
 	loff_t line_start = 0;
 	char buf[128];
 	for (;;) {
-		ssize_t count = kernel_read_compat(fp, &chr, sizeof(chr), &pos);
+		ssize_t count = ksu_kernel_read_compat(fp, &chr, sizeof(chr), &pos);
 		if (count != sizeof(chr))
 			break;
 		if (chr != '\n')
 			continue;
 
-		count = kernel_read_compat(fp, buf, sizeof(buf), &line_start);
+		count = ksu_kernel_read_compat(fp, buf, sizeof(buf), &line_start);
 
 		struct uid_data *data =
 			kmalloc(sizeof(struct uid_data), GFP_ATOMIC);
@@ -97,7 +97,10 @@ static void do_update_uid(struct work_struct *work)
 	// first, check if manager_uid exist!
 	bool manager_exist = false;
 	list_for_each_entry (np, &uid_list, list) {
-		if (np->uid == ksu_get_manager_uid()) {
+		// if manager is installed in work profile, the uid in packages.list is still equals main profile
+		// don't delete it in this case!
+		int manager_uid = ksu_get_manager_uid() % 100000;
+		if (np->uid == manager_uid) {
 			manager_exist = true;
 			break;
 		}
