@@ -10,7 +10,7 @@ blue='\033[0;34m'
 default='\033[0m'
 
 # Define variables
-CLANG_DIR=$HOME/drive2/syb13/prebuilts/clang/host/linux-x86/clang-r450784d
+CLANG_DIR=$HOME/clang-proton
 KERNEL_DIR=$PWD
 Anykernel_DIR=$KERNEL_DIR/AnyKernel3/
 DATE=$(date +"[%d%m%Y]")
@@ -54,7 +54,6 @@ echo -e "***********************************************$default"
 cd ../
 rm -rf $Anykernel_DIR/Image.gz-dtb
 rm -rf $Anykernel_DIR/dtbo.img
-rm -rf out
 
 # Build complete
 BUILD_END=$(date +"%s")
