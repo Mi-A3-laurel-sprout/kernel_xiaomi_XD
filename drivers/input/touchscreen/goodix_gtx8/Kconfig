@@ -1,7 +1,7 @@
 #
 # Goodix touchscreen driver configuration
 #
-menuconfig TOUCHSCREEN_GOODIX_LAUREL
+menuconfig TOUCHSCREEN_GOODIX_GTX8
 	bool "Goodix GTx8 touchscreen"
 	depends on I2C
 	default n
@@ -11,9 +11,9 @@ menuconfig TOUCHSCREEN_GOODIX_LAUREL
 
 	  If unsure, say N.
 
-if TOUCHSCREEN_GOODIX_LAUREL
+if TOUCHSCREEN_GOODIX_GTX8
 
-config TOUCHSCREEN_GOODIX_LAUREL_UPDATE
+config TOUCHSCREEN_GOODIX_GTX8_UPDATE
 	tristate "Goodix GTx8 firmware update module"
 	default n
 	help
@@ -23,7 +23,7 @@ config TOUCHSCREEN_GOODIX_LAUREL_UPDATE
 
 	  To compile this driver as a module, choose M here.
 
-config TOUCHSCREEN_GOODIX_LAUREL_GESTURE
+config TOUCHSCREEN_GOODIX_GTX8_GESTURE
 	tristate "Goodix GTx8 gesture wakeup feature"
 	default n
 	help
@@ -33,7 +33,7 @@ config TOUCHSCREEN_GOODIX_LAUREL_GESTURE
 
 	  To compile this driver as a module, choose M here.
 
-config TOUCHSCREEN_GOODIX_LAUREL_TOOLS
+config TOUCHSCREEN_GOODIX_GTX8_TOOLS
 	tristate "Goodix touch tools support"
 	default n
 	help

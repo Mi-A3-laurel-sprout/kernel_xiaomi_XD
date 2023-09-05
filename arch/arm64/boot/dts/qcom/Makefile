@@ -350,7 +350,7 @@ dtb-$(CONFIG_ARCH_SDMMAGPIE)	+= sdmmagpie-rumi.dtb \
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-	dtbo-$(CONFIG_MACH_XIAOMI_LAUREL) += \
+	dtbo-$(CONFIG_MACH_XIAOMI_F9S) += \
 		laurel_sprout-qrd-overlay.dtbo
 
 laurel_sprout-qrd-overlay.dtbo-base := trinket.dtb
