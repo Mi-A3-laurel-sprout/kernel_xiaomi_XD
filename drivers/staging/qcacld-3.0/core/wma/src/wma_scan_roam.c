@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -167,6 +167,9 @@ QDF_STATUS wma_update_channel_list(WMA_HANDLE handle,
 			chan_p->is_chan_passive = 1;
 			chan_p->dfs_set = 1;
 		}
+
+		if (chan_list->chanParam[i].nan_disabled)
+			chan_p->nan_disabled = 1;
 
 		if (chan_p->mhz < WMA_2_4_GHZ_MAX_FREQ) {
 			chan_p->phy_mode = MODE_11G;
@@ -1847,7 +1850,6 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 	struct mac_context *mac = cds_get_context(QDF_MODULE_ID_PE);
 	uint32_t mode = 0;
 	uint8_t enable_roam_reason_vsie = 0;
-	struct wma_txrx_node *intr = NULL;
 	struct wmi_bss_load_config *bss_load_cfg;
 
 	if (!mac) {
@@ -1864,8 +1866,6 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 	wma_handle->interfaces[roam_req->sessionId].roaming_in_progress = false;
 	switch (roam_req->Command) {
 	case ROAM_SCAN_OFFLOAD_START:
-		intr = &wma_handle->interfaces[roam_req->sessionId];
-		intr->delay_before_vdev_stop = roam_req->delay_before_vdev_stop;
 		/*
 		 * Scan/Roam threshold parameters are translated from
 		 * fields of struct roam_offload_scan_req to WMITLV
@@ -3786,7 +3786,7 @@ int wma_roam_stats_event_handler(WMA_HANDLE handle, uint8_t *event,
 		num_tlv = MAX_ROAM_SCAN_STATS_TLV;
 	}
 
-	rem_len = WMI_SVC_MSG_MAX_SIZE - sizeof(*fixed_param);
+	rem_len = len - sizeof(*fixed_param);
 	if (rem_len < num_tlv * sizeof(wmi_roam_trigger_reason)) {
 		wma_err_rl("Invalid roam trigger data");
 		goto err;
@@ -5132,6 +5132,7 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 	struct extscan_cached_scan_results *t_cached_result;
 	struct extscan_cached_scan_result *t_scan_id_grp;
 	int i, j;
+	uint32_t total_scan_num_results = 0;
 	tSirWifiScanResult *ap;
 
 	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
@@ -5142,17 +5143,19 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 	t_cached_result = cached_result;
 	t_scan_id_grp = &t_cached_result->result[0];
 
-	if ((t_cached_result->num_scan_ids *
-	     QDF_MIN(t_scan_id_grp->num_results,
-		     param_buf->num_bssid_list)) > param_buf->num_bssid_list) {
-		WMA_LOGE("%s:num_scan_ids %d, num_results %d num_bssid_list %d",
-			 __func__,
-			 t_cached_result->num_scan_ids,
-			 t_scan_id_grp->num_results,
-			 param_buf->num_bssid_list);
+	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
+		total_scan_num_results += t_scan_id_grp->num_results;
+		t_scan_id_grp++;
+	}
+
+	if (total_scan_num_results > param_buf->num_bssid_list) {
+		wma_err("total_scan_num_results %d, num_bssid_list %d",
+			total_scan_num_results,
+			param_buf->num_bssid_list);
 		return -EINVAL;
 	}
 
+	t_scan_id_grp = &t_cached_result->result[0];
 	WMA_LOGD("%s: num_scan_ids:%d", __func__,
 			t_cached_result->num_scan_ids);
 	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
@@ -5164,8 +5167,7 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 			return -ENOMEM;
 
 		ap = &t_scan_id_grp->ap[0];
-		for (j = 0; j < QDF_MIN(t_scan_id_grp->num_results,
-					param_buf->num_bssid_list); j++) {
+		for (j = 0; j < t_scan_id_grp->num_results; j++) {
 			ap->channel = src_hotlist->channel;
 			ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
 			ap->rtt = src_hotlist->rtt;

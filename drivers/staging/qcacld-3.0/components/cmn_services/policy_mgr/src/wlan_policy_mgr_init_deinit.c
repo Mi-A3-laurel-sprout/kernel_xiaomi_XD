@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -440,13 +441,6 @@ QDF_STATUS policy_mgr_psoc_enable(struct wlan_objmgr_psoc *psoc)
 		return status;
 	}
 
-	/* init dual_mac_configuration_complete_evt */
-	status = qdf_event_create(&pm_ctx->dual_mac_configuration_complete_evt);
-	if (!QDF_IS_STATUS_SUCCESS(status)) {
-		policy_mgr_err("dual_mac_configuration_complete_evt init failed");
-		return status;
-	}
-
 	status = qdf_event_create(&pm_ctx->opportunistic_update_done_evt);
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
 		policy_mgr_err("opportunistic_update_done_evt init failed");
@@ -597,14 +591,6 @@ QDF_STATUS policy_mgr_psoc_disable(struct wlan_objmgr_psoc *psoc)
 	if (QDF_IS_STATUS_ERROR(
 		policy_mgr_reset_sap_mandatory_channels(pm_ctx))) {
 		policy_mgr_err("failed to reset sap mandatory channels");
-		status = QDF_STATUS_E_FAILURE;
-		QDF_ASSERT(0);
-	}
-
-	/* destroy dual_mac_configuration_complete_evt */
-	if (!QDF_IS_STATUS_SUCCESS(qdf_event_destroy
-		(&pm_ctx->dual_mac_configuration_complete_evt))) {
-		policy_mgr_err("Failed to destroy dual_mac_configuration_complete_evt");
 		status = QDF_STATUS_E_FAILURE;
 		QDF_ASSERT(0);
 	}
