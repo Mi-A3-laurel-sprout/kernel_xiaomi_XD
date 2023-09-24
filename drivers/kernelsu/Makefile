@@ -13,8 +13,9 @@ obj-y += kernel_compat.o
 
 obj-y += selinux/
 
-KSU_GIT_VERSION := 1027
-$(eval KSU_VERSION=11210)
+KSU_GIT_VERSION := 1045
+$(eval KSU_VERSION=11238)
+
 $(info -- KernelSU version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 
