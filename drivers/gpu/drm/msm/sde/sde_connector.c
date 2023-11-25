@@ -25,7 +25,7 @@
 #include "sde_rm.h"
 
 #define BL_NODE_NAME_SIZE 32
-#define LIMIT_PANEL_ERROR_MAX_TIMES 15  
+#define LIMIT_PANEL_ERROR_MAX_TIMES 15
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -1930,7 +1930,7 @@ int sde_connector_esd_status(struct drm_connector *conn)
 static void sde_connector_check_status_work(struct work_struct *work)
 {
 	struct sde_connector *conn;
-	static int record_panel_error_times = 0; 
+	static int record_panel_error_times = 0;
 	int rc = 0;
 
 	conn = container_of(to_delayed_work(work),

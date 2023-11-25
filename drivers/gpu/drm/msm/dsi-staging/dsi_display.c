@@ -19,8 +19,6 @@
 #include <linux/of_gpio.h>
 #include <linux/err.h>
 
-#include <linux/msm_drm_notify.h>
-
 #include "msm_drv.h"
 #include "sde_connector.h"
 #include "msm_mmu.h"
@@ -48,7 +46,6 @@
 #define MAX_NAME_SIZE	64
 
 #define DSI_CLOCK_BITRATE_RADIX 10
-#define DSI_FOD_HBM_RADIX 10
 #define MAX_TE_SOURCE_ID  2
 #define AOD_BRIGHTNESS 190
 
@@ -66,8 +63,6 @@ static const struct of_device_id dsi_display_dt_match[] = {
 	{.compatible = "qcom,dsi-display"},
 	{}
 };
-
-struct dsi_display *primary_display;
 
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
@@ -1509,8 +1504,9 @@ int dsi_display_set_power(struct drm_connector *connector,
 		int power_mode, void *disp)
 {
 	struct dsi_display *display = disp;
-	struct msm_drm_notifier notify_data;
 	int rc = 0;
+	int blank;
+	struct msm_drm_notifier notifier_data;
 	struct drm_device *dev = NULL;
 
 	pr_debug("power_mode = %s\n",power_mode);
@@ -1527,38 +1523,44 @@ int dsi_display_set_power(struct drm_connector *connector,
 			dev = connector->dev;
 	}
 
-	notify_data.data = &power_mode;
-	notify_data.id = MSM_DRM_PRIMARY_DISPLAY;
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		pr_info("enter SDE_MODE_DPMS_LP1\n");
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp1(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_LP2:
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		pr_info("enter SDE_MODE_DPMS_LP2\n");
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp2(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
-		if (display->panel->power_mode == SDE_MODE_DPMS_LP1 ||
-			display->panel->power_mode == SDE_MODE_DPMS_LP2) {
-			msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
-			rc = dsi_panel_set_nolp(display->panel);
-			msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
-        }
+		blank = MSM_DRM_BLANK_UNBLANK;
+		notifier_data.data = &blank;
+		pr_info("enter SDE_MODE_DPMS_NOLP\n");
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
+		rc = dsi_panel_set_nolp(display->panel);
 		break;
 	case SDE_MODE_DPMS_OFF:
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		pr_info("enter SDE_MODE_DPMS_OFF\n");
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
+		break;
 	default:
-		return rc;
+		break;
 	}
 
-	pr_debug("Power mode transition from %d to %d %s",
-		 display->panel->power_mode, power_mode,
-		 rc ? "failed" : "successful");
-	if (!rc)
-		display->panel->power_mode = power_mode;
+	dev->pre_sde_power_mode = power_mode;
 
 	return rc;
 }
@@ -5467,123 +5469,6 @@ static struct attribute_group dynamic_dsi_clock_fs_attrs_group = {
 	.attrs = dynamic_dsi_clock_fs_attrs,
 };
 
-static ssize_t sysfs_fod_hbm_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	rc = snprintf(buf, PAGE_SIZE, "%d\n", panel->fod_hbm_enabled);
-
-	return rc;
-}
-
-static ssize_t sysfs_fod_hbm_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int status;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtoint(buf, DSI_FOD_HBM_RADIX, &status);
-	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	panel = display->panel;
-
-	dsi_panel_set_fod_hbm(panel, !!status);
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_hbm, 0644,
-			sysfs_fod_hbm_read,
-			sysfs_fod_hbm_write);
-
-static struct attribute *fod_hbm_fs_attrs[] = {
-	&dev_attr_fod_hbm.attr,
-	NULL,
-};
-static struct attribute_group fod_hbm_fs_attrs_group = {
-	.attrs = fod_hbm_fs_attrs,
-};
-
-static ssize_t sysfs_fod_ui_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	bool status;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	status = atomic_read(&display->fod_ui);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", status);
-}
-
-bool is_dimlayer_hbm_enabled;
-static ssize_t dimlayer_hbm_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-	if (!display->panel)
-		return 0;
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", is_dimlayer_hbm_enabled);
-}
-
-static ssize_t dimlayer_hbm_store(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	int ret = 0;
-	struct dsi_display *display = dev_get_drvdata(dev);
-	if (!display->panel)
-		return ret;
-
-	sscanf(buf, "%d", &ret);
-
-	is_dimlayer_hbm_enabled = ret > 0;
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_ui, 0444,
-			sysfs_fod_ui_read,
-			NULL);
-
-DEVICE_ATTR_RW(dimlayer_hbm);
-
-static struct attribute *display_fs_attrs[] = {
-	&dev_attr_fod_ui.attr,
-	&dev_attr_dimlayer_hbm.attr,
-	NULL,
-};
-static struct attribute_group display_fs_attrs_group = {
-	.attrs = display_fs_attrs,
-};
-
 static int dsi_display_validate_split_link(struct dsi_display *display)
 {
 	int i, rc = 0;
@@ -5625,15 +5510,6 @@ static int dsi_display_sysfs_init(struct dsi_display *display)
 	int rc = 0;
 	struct device *dev = &display->pdev->dev;
 
-	rc = sysfs_create_group(&dev->kobj,
-			&fod_hbm_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create fod hbm device attributes");
-
-	rc = sysfs_create_group(&dev->kobj, &display_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create display device attributes");
-
 	if (display->panel->panel_mode == DSI_OP_CMD_MODE)
 		rc = sysfs_create_group(&dev->kobj,
 			&dynamic_dsi_clock_fs_attrs_group);
@@ -5652,13 +5528,6 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 
 	return 0;
 
-}
-
-void dsi_display_set_fod_ui(struct dsi_display *display, bool status)
-{
-	struct device *dev = &display->pdev->dev;
-	atomic_set(&display->fod_ui, status);
-	sysfs_notify(&dev->kobj, NULL, "fod_ui");
 }
 
 /**
@@ -5959,7 +5828,6 @@ static void dsi_display_unbind(struct device *dev,
 	}
 
 	atomic_set(&display->clkrate_change_pending, 0);
-	atomic_set(&display->fod_ui, false);
 	(void)dsi_display_sysfs_deinit(display);
 	(void)dsi_display_debugfs_deinit(display);
 
@@ -7031,7 +6899,6 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
-	primary_display = display;
 
 error:
 	if (rc)
@@ -8429,10 +8296,6 @@ int dsi_display_unprepare(struct dsi_display *display)
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
-}
-
-struct dsi_display *get_main_display(void) {
-	return primary_display;
 }
 
 static int __init dsi_display_register(void)

@@ -42,8 +42,6 @@
 #include "sde_power_handle.h"
 #include "sde_core_perf.h"
 #include "sde_trace.h"
-#include "dsi_display.h"
-#include "dsi_panel.h"
 
 #define SDE_PSTATES_MAX (SDE_STAGE_MAX * 4)
 #define SDE_MULTIRECT_PLANE_MAX (SDE_STAGE_MAX * 2)
@@ -2141,10 +2139,6 @@ static void _sde_crtc_blend_setup_mixer(struct drm_crtc *crtc,
 		for (i = 0; i < cstate->num_dim_layers; i++)
 			_sde_crtc_setup_dim_layer_cfg(crtc, sde_crtc,
 					mixer, &cstate->dim_layer[i]);
-
-		if (cstate->fod_dim_layer)
-			_sde_crtc_setup_dim_layer_cfg(crtc, sde_crtc,
-					mixer, cstate->fod_dim_layer);
 	}
 
 	_sde_crtc_program_lm_output_roi(crtc);
@@ -5254,92 +5248,6 @@ static int _sde_crtc_check_secure_state(struct drm_crtc *crtc,
 	return 0;
 }
 
-extern u32 fod_dim_bl_lvl;
-extern bool is_dimlayer_hbm_enabled;
-static int xiaomi_alpha_lookup_tlb[] = {255, 243, 238, 235, 232, 230, 228, 226, 224, 222, 221, 219, 218, 216, 215, 214, 212, 211, 210, 209, 208, 207, 206, 205, 204, 203, 202, 201, 200, 199, 199, 198, 197, 196, 195, 194, 194, 193, 192, 191, 191, 190, 189, 189, 188, 187, 186, 186, 185, 185, 184, 183, 183, 182, 181, 181, 180, 180, 179, 178, 178, 177, 177, 176, 175, 175, 174, 174, 173, 173, 172, 172, 171, 171, 170, 170, 169, 169, 168, 168, 167, 167, 166, 166, 165, 165, 164, 164, 163, 163, 162, 162, 161, 161, 160, 160, 159, 159, 159, 158, 158, 157, 157, 156, 156, 156, 155, 155, 154, 154, 153, 153, 153, 152, 152, 151, 151, 151, 150, 150, 149, 149, 149, 148, 148, 147, 147, 147, 146, 146, 145, 145, 145, 144, 144, 144, 143, 143, 142, 142, 142, 141, 141, 141, 140, 140, 139, 139, 139, 138, 138, 138, 137, 137, 137, 136, 136, 136, 135, 135, 135, 134, 134, 134, 133, 133, 133, 132, 132, 132, 131, 131, 131, 130, 130, 130, 129, 129, 129, 128, 128, 128, 127, 127, 127, 126, 126, 126, 125, 125, 125, 125, 124, 124, 124, 123, 123, 123, 122, 122, 122, 121, 121, 121, 121, 120, 120, 120, 119, 119, 119, 118, 118, 118, 118, 117, 117, 117, 116, 116, 116, 116, 115, 115, 115, 114, 114, 114, 114, 113, 113, 113, 112, 112, 112, 112, 111, 111, 111, 111, 110, 110, 110, 109, 109, 109, 109, 108, 108, 139, 139, 139, 139, 138, 138, 138, 138, 137, 137, 137, 137, 137, 136, 136, 136, 136, 136, 135, 135, 135, 135, 135, 134, 134, 134, 134, 134, 133, 133, 133, 133, 133, 132, 132, 132, 132, 132, 131, 131, 131, 131, 131, 130, 130, 130, 130, 130, 130, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 127, 127, 127, 127, 127, 126, 126, 126, 126, 126, 126, 125, 125, 125, 125, 125, 124, 124, 124, 124, 124, 124, 123, 123, 123, 123, 123, 122, 122, 122, 122, 122, 122, 121, 121, 121, 121, 121, 121, 120, 120, 120, 120, 120, 119, 119, 119, 119, 119, 119, 118, 118, 118, 118, 118, 118, 117, 117, 117, 117, 117, 117, 116, 116, 116, 116, 116, 116, 115, 115, 115, 115, 115, 115, 114, 114, 114, 114, 114, 114, 113, 113, 113, 113, 113, 113, 112, 112, 112, 112, 112, 112, 111, 111, 111, 111, 111, 111, 110, 110, 110, 110, 110, 110, 109, 109, 109, 109, 109, 109, 108, 108, 108, 108, 108, 108, 108, 107, 107, 107, 107, 107, 107, 106, 106, 106, 106, 106, 106, 105, 105, 105, 105, 105, 105, 105, 104, 104, 104, 104, 104, 104, 103, 103, 103, 103, 103, 103, 103, 102, 102, 102, 102, 102, 102, 102, 101, 101, 101, 101, 101, 101, 100, 100, 100, 100, 100, 100, 100, 99, 99, 99, 99, 99, 99, 99, 98, 98, 98, 98, 98, 98, 98, 97, 97, 97, 97, 97, 97, 97, 96, 96, 96, 96, 96, 96, 95, 95, 95, 95, 95, 95, 95, 94, 94, 94, 94, 94, 94, 94, 94, 93, 93, 93, 93, 93, 93, 93, 92, 92, 92, 92, 92, 92, 92, 91, 91, 91, 91, 91, 91, 91, 90, 90, 90, 90, 90, 90, 90, 89, 89, 89, 89, 89, 89, 89, 89, 88, 88, 88, 88, 88, 88, 88, 87, 87, 87, 87, 87, 87, 87, 86, 86, 86, 86, 86, 86, 86, 86, 85, 85, 85, 85, 85, 85, 85, 84, 84, 84, 84, 84, 84, 84, 84, 83, 83, 83, 83, 83, 83, 83, 83, 82, 82, 82, 82, 82, 82, 82, 81, 81, 81, 81, 81, 81, 81, 81, 80, 80, 80, 80, 80, 80, 80, 80, 79, 79, 79, 79, 79, 79, 79, 79, 78, 78, 78, 78, 78, 78, 78, 77, 77, 77, 77, 77, 77, 77, 77, 76, 76, 76, 76, 76, 76, 76, 76, 75, 75, 75, 75, 75, 75, 75, 75, 74, 74, 74, 74, 74, 74, 74, 74, 74, 73, 73, 73, 73, 73, 73, 73, 73, 72, 72, 72, 72, 72, 72, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 70, 70, 70, 70, 70, 70, 70, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 68, 68, 68, 68, 68, 68, 68, 68, 67, 67, 67, 67, 67, 67, 67, 67, 67, 66, 66, 66, 66, 66, 66, 66, 66, 65, 65, 65, 65, 65, 65, 65, 65, 65, 64, 64, 64, 64, 64, 64, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 61, 61, 61, 61, 61, 61, 61, 61, 61, 60, 60, 60, 60, 60, 60, 60, 60, 60, 59, 59, 59, 59, 59, 59, 59, 59, 59, 58, 58, 58, 58, 58, 58, 58, 58, 58, 57, 57, 57, 57, 57, 57, 57, 57, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 55, 55, 55, 55, 55, 55, 55, 55, 55, 54, 54, 54, 54, 54, 54, 54, 54, 54, 53, 53, 53, 53, 53, 53, 53, 53, 53, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 51, 51, 51, 51, 51, 51, 51, 51, 51, 50, 50, 50, 50, 50, 50, 50, 50, 50, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 48, 48, 48, 48, 48, 48, 48, 48, 48, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 45, 45, 45, 45, 45, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 35, 35, 35, 35, 35, 35};
-static struct sde_hw_dim_layer* sde_crtc_setup_fod_dim_layer(
-		struct sde_crtc_state *cstate,
-		uint32_t stage)
-{
-	struct drm_crtc_state *crtc_state = &cstate->base;
-	struct sde_hw_dim_layer *dim_layer = NULL;
-	struct dsi_display *display;
-	struct sde_kms *kms;
-	uint32_t layer_stage;
-	uint32_t alpha;
-
-	kms = _sde_crtc_get_kms(crtc_state->crtc);
-	if (!kms || !kms->catalog) {
-		SDE_ERROR("Invalid kms\n");
-		goto error;
-	}
-	
-	display = get_main_display();
-	if (!display || !display->panel) {
-		SDE_ERROR("Invalid primary display\n");
-		goto error;
-	}
-
-	layer_stage = SDE_STAGE_0 + stage;
-
-	alpha = xiaomi_alpha_lookup_tlb[fod_dim_bl_lvl];
-	dim_layer = &cstate->dim_layer[cstate->num_dim_layers];
-	dim_layer->flags = SDE_DRM_DIM_LAYER_EXCLUSIVE;
-	dim_layer->stage = layer_stage;
-	dim_layer->rect.x = 307;
-	dim_layer->rect.y = 1370;
-	dim_layer->rect.w = 106;
-	dim_layer->rect.h = 106;
-	dim_layer->color_fill =
-			(struct sde_mdss_color) {0, 0, 0, alpha};
-
-error:
-	return dim_layer;
-}
-
-static void sde_crtc_fod_atomic_check(struct sde_crtc_state *cstate,
-		struct plane_state *pstates, int cnt)
-{
-	int fod_layer_index = -1;
-	int plane_idx;
-	int zpos = INT_MAX;
-
-	for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
-		if (sde_plane_is_fod_layer(pstates[plane_idx].drm_pstate))
-			fod_layer_index = plane_idx;
-	}
-
-	if (is_dimlayer_hbm_enabled) {
-		if (fod_layer_index >= 0) {
-			if (zpos > pstates[fod_layer_index].stage)
-				zpos = pstates[fod_layer_index].stage;
-			pstates[fod_layer_index].stage++;
-		}
-
-		for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
-			if (plane_idx == fod_layer_index)
-				continue;
-			if (pstates[plane_idx].stage >= zpos)
-				pstates[plane_idx].stage++;
-		}
-
-		if (zpos == INT_MAX) {
-			zpos = 0;
-			for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
-				if (pstates[plane_idx].stage > zpos)
-					zpos = pstates[plane_idx].stage;
-			}
-			zpos++;
-		}
-
-		cstate->fod_dim_layer =
-		    sde_crtc_setup_fod_dim_layer(cstate, zpos);
-		if (!cstate->fod_dim_layer)
-			return;
-	} else
-		cstate->fod_dim_layer = NULL;
-}
-
 static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 		struct drm_crtc_state *state)
 {
@@ -5525,8 +5433,6 @@ static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 			sde_plane_clear_multirect(pipe_staged[i]);
 		}
 	}
-
-	sde_crtc_fod_atomic_check(cstate, pstates, cnt);
 
 	/* assign mixer stages based on sorted zpos property */
 	if (cnt > 0)
