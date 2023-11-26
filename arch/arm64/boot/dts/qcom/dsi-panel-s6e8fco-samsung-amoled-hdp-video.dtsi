@@ -144,7 +144,7 @@
 				qcom,mdss-dsi-v-back-porch = <5>;
 				qcom,mdss-dsi-v-front-porch = <17>;
 				qcom,mdss-dsi-v-pulse-width = <2>;
-				qcom,mdss-dsi-panel-framerate = <60>;
+				qcom,mdss-dsi-panel-framerate = <66>;
 				qcom,mdss-dsi-on-command = [
 				39 01 00 00 00 00 03 FC 5A 5A
 				39 01 00 00 00 00 03 51 00 00
