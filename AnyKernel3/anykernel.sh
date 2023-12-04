@@ -12,7 +12,6 @@ do.cleanup=1
 do.cleanuponabort=0
 device.name1=laurel_sprout
 device.name2=MI A3
-supported.versions=11.0-13.0
 supported.patchlevels=
 '; } # end properties
 

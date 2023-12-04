@@ -13,13 +13,13 @@ default='\033[0m'
 CLANG_DIR=$HOME/clang-proton
 KERNEL_DIR=$PWD
 Anykernel_DIR=$KERNEL_DIR/AnyKernel3/
-DATE=$(date +"[%d%m%Y]")
-TIME=$(date +"%H.%M.%S")
 KERNEL_NAME="NoName"
 DEVICE="MI_A3"
 ANDROID_VER="[a11+]"
 KERNEL_SUBVER="[V9]"
 FINAL_ZIP="$DEVICE"-"$KERNEL_NAME"-"$KERNEL_SUBVER"-"$ANDROID_VER"-"$DATE"
+
+rm -rf $Anykernel_DIR/MI_A3-NoName-[V9]-[a11+]-.zip
 
 BUILD_START=$(date +"%s")
 
