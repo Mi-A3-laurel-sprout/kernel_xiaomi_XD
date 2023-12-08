@@ -877,9 +877,10 @@ enum msm_dim_layer_type dsi_panel_update_dimlayer(struct dsi_panel *panel,
 		/* Switch to HBM mode if:
 		 * - it is not already enabled by user
 		 * - we are coming from doze mode
+		 * - fod_pressed is true
 		 */
 		if (!panel->hbm_enabled || panel->doze_status)
-			dsi_panel_set_hbm(panel, true);
+			dsi_panel_set_hbm(panel, panel->fod_pressed);
 	}
 	else if (panel->dimlayer_type == MSM_DIM_LAYER_FOD) {
 		if (!panel->doze_status) {
