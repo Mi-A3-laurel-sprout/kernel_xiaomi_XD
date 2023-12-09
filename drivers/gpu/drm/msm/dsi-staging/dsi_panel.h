@@ -252,7 +252,6 @@ struct dsi_panel {
 
 	struct brightness_alpha_pair *fod_dim_lut;
 	u32 fod_dim_lut_count;
-	bool fod_pressed;
 
 	struct brightness_alpha_pair *dc_dim_lut;
 	u32 dc_dim_lut_count;
@@ -391,11 +390,6 @@ u32 dsi_panel_get_dc_dim_alpha(struct dsi_panel *panel);
 
 u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
 
-static inline bool __dsi_panel_is_fod_pressed(struct dsi_panel *panel)
-{
-	return panel->fod_pressed;
-}
-
 static inline bool dsi_panel_get_dc_dimming(struct dsi_panel *panel)
 {
 	bool status;
@@ -415,17 +409,6 @@ static inline void dsi_panel_set_dc_dimming(struct dsi_panel *panel,
 	dsi_panel_release_panel_lock(panel);
 }
 
-static inline bool dsi_panel_is_fod_pressed(struct dsi_panel *panel)
-{
-	bool status;
-
-	dsi_panel_acquire_panel_lock(panel);
-	status = __dsi_panel_is_fod_pressed(panel);
-	dsi_panel_release_panel_lock(panel);
-
-	return status;
-}
-
 static inline bool dsi_panel_is_hbm_enabled(struct dsi_panel *panel)
 {
 	bool status;
@@ -435,14 +418,6 @@ static inline bool dsi_panel_is_hbm_enabled(struct dsi_panel *panel)
 	dsi_panel_release_panel_lock(panel);
 
 	return status;
-}
-
-static inline void dsi_panel_set_fod_pressed(struct dsi_panel *panel,
-					     bool pressed)
-{
-	dsi_panel_acquire_panel_lock(panel);
-	panel->fod_pressed = pressed;
-	dsi_panel_release_panel_lock(panel);
 }
 
 int dsi_panel_set_hbm_enabled(struct dsi_panel *panel, bool status);

@@ -5505,45 +5505,6 @@ error:
 	return rc;
 }
 
-static ssize_t fod_pressed_show(struct device *dev,
-				struct device_attribute *attr,
-				char *buf)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-
-	if (!display->panel) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	return snprintf(buf, PAGE_SIZE, "%d\n",
-			dsi_panel_is_fod_pressed(display->panel));
-}
-
-static ssize_t fod_pressed_store(struct device *dev,
-				 struct device_attribute *attr,
-				 const char *buf, size_t count)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-	bool pressed;
-	int rc;
-
-	if (!display->panel) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtobool(buf, &pressed);
-	if (rc) {
-		pr_err("Failed to parse value, rc=%d\n", rc);
-		return rc;
-	}
-
-	dsi_panel_set_fod_pressed(display->panel, pressed);
-
-	return count;
-}
-
 static ssize_t sysfs_fod_ui_read(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -5643,7 +5604,6 @@ static ssize_t dc_dimming_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR_RW(fod_pressed);
 static DEVICE_ATTR(fod_ui, 0444,
 			sysfs_fod_ui_read,
 			NULL);
@@ -5651,7 +5611,6 @@ static DEVICE_ATTR_RW(hbm);
 static DEVICE_ATTR_RW(dc_dimming);
 
 static struct attribute *display_fs_attrs[] = {
-	&dev_attr_fod_pressed.attr,
 	&dev_attr_fod_ui.attr,
 	&dev_attr_hbm.attr,
 	&dev_attr_dc_dimming.attr,
@@ -7175,12 +7134,14 @@ int dsi_display_get_dim_layer_alpha(void *dsi_display,
 
 	switch (type) {
 	case MSM_DIM_LAYER_FOD:
-		/* Enable dimming layer only if FOD is pressed */
-		rc = __dsi_panel_is_fod_pressed(display->panel) ? 1 : 0;
+		/* Fetch alpha value for dimming layer */
+		*alpha = dsi_panel_get_fod_dim_alpha(display->panel);
 
-		/* Retrieve alpha from panel if pressed */
-		if (rc)
-			*alpha = dsi_panel_get_fod_dim_alpha(display->panel);
+		/* Return 1 regardless of returned alpha value because
+		 * return value determine also type of global dimming
+		 * layer.
+		 */
+		rc = 1;
 		break;
 	case MSM_DIM_LAYER_TOP:
 		/* Enable dimming layer if DC dimming is enabled */
