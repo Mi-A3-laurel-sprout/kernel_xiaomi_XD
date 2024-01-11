@@ -5270,6 +5270,7 @@ F:	Documentation/ABI/testing/sysfs-fs-f2fs
 F:	fs/f2fs/
 F:	include/linux/f2fs_fs.h
 F:	include/trace/events/f2fs.h
+F:	include/uapi/linux/f2fs.h
 
 F71805F HARDWARE MONITORING DRIVER
 M:	Jean Delvare <jdelvare@suse.com>
@@ -12707,6 +12708,13 @@ M:	H Hartley Sweeten <hsweeten@visionengravers.com>
 S:	Odd Fixes
 F:	drivers/staging/comedi/
 
+STAGING - EROFS FILE SYSTEM
+M:	Gao Xiang <gaoxiang25@huawei.com>
+M:	Chao Yu <yuchao0@huawei.com>
+L:	linux-erofs@lists.ozlabs.org
+S:	Maintained
+F:	drivers/staging/erofs/
+
 STAGING - FLARION FT1000 DRIVERS
 M:	Marek Belisko <marek.belisko@gmail.com>
 S:	Odd Fixes
@@ -14946,6 +14954,18 @@ S:	Maintained
 F:	mm/zsmalloc.c
 F:	include/linux/zsmalloc.h
 F:	Documentation/vm/zsmalloc.txt
+
+ZSTD
+M:	Nick Terrell <terrelln@fb.com>
+S:	Maintained
+B:	https://github.com/facebook/zstd/issues
+T:	git git://github.com/terrelln/linux.git
+F:	include/linux/zstd*
+F:	lib/zstd/
+F:	lib/decompress_unzstd.c
+F:	crypto/zstd.c
+N:	zstd
+K:	zstd
 
 ZSWAP COMPRESSED SWAP CACHING
 M:	Seth Jennings <sjenning@redhat.com>
