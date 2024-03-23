@@ -11,7 +11,7 @@ default='\033[0m'
 
 # Define variables
 CLANG_VER="clang-r498229b"
-ROM_PATH="$HOME/drive2/pixelos14"
+ROM_PATH="/mnt/QuickBoi/LineageOS/21"
 CLANG_DIR=$ROM_PATH/prebuilts/clang/host/linux-x86/$CLANG_VER
 KERNEL_DIR=$PWD
 Anykernel_DIR=$KERNEL_DIR/AnyKernel3/
@@ -19,7 +19,7 @@ DATE=$(date +"[%d%m%Y]")
 TIME=$(date +"%H.%M.%S")
 KERNEL_NAME="NoName"
 DEVICE="MI_A3"
-ANDROID_VER="[a10+a11]"
+ANDROID_VER="[a10+a14]"
 KERNEL_SUBVER="[V9]"
 FINAL_ZIP="$DEVICE"-"$KERNEL_NAME"-"$KERNEL_SUBVER"-"$ANDROID_VER"-"$DATE"
 
