@@ -561,7 +561,11 @@ void kiocb_set_cancel_fn(struct kiocb *iocb, kiocb_cancel_fn *cancel)
 	struct kioctx *ctx = req->ki_ctx;
 	unsigned long flags;
 
-	if (WARN_ON_ONCE(!list_empty(&req->ki_list)))
+	/*
+	 * kiocb didn't come from aio or is neither a read nor a write, hence
+	 * ignore it.
+	 */
+	if (WARN_ON_ONCE(!list_empty(&req->ki_list)) || !(iocb->ki_flags & IOCB_AIO_RW))
 		return;
 
 	spin_lock_irqsave(&ctx->ctx_lock, flags);
@@ -1344,10 +1348,10 @@ static long read_events(struct kioctx *ctx, long min_nr, long nr,
  *	Create an aio_context capable of receiving at least nr_events.
  *	ctxp must not point to an aio_context that already exists, and
  *	must be initialized to 0 prior to the call.  On successful
- *	creation of the aio_context, *ctxp is filled in with the resulting 
+ *	creation of the aio_context, *ctxp is filled in with the resulting
  *	handle.  May fail with -EINVAL if *ctxp is not initialized,
- *	if the specified nr_events exceeds internal limits.  May fail 
- *	with -EAGAIN if the specified nr_events exceeds the user's limit 
+ *	if the specified nr_events exceeds internal limits.  May fail
+ *	with -EAGAIN if the specified nr_events exceeds the user's limit
  *	of available events.  May fail with -ENOMEM if insufficient kernel
  *	resources are available.  May fail with -EFAULT if an invalid
  *	pointer is passed for ctxp.  Will fail with -ENOSYS if not
@@ -1417,7 +1421,7 @@ out:
 #endif
 
 /* sys_io_destroy:
- *	Destroy the aio_context specified.  May cancel any outstanding 
+ *	Destroy the aio_context specified.  May cancel any outstanding
  *	AIOs and block on completion.  Will fail with -ENOSYS if not
  *	implemented.  May fail with -EINVAL if the context pointed to
  *	is invalid.
@@ -1582,7 +1586,7 @@ static int io_submit_one(struct kioctx *ctx, struct iocb __user *user_iocb,
 	}
 	req->common.ki_pos = iocb->aio_offset;
 	req->common.ki_complete = aio_complete;
-	req->common.ki_flags = iocb_flags(req->common.ki_filp);
+	req->common.ki_flags = iocb_flags(req->common.ki_filp) | IOCB_AIO_RW;
 	req->common.ki_hint = file_write_hint(file);
 
 	if (iocb->aio_flags & IOCB_FLAG_RESFD) {
