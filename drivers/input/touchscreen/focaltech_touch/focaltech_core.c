@@ -111,11 +111,11 @@ int ctp_is_probe = 0;
 		{
 			return;
 		}
-		FTS_INFO("aaFts usb detect: %s %d.\n",__func__,b_usb_plugin);
+		FTS_DEBUG("aaFts usb detect: %s %d.\n",__func__,b_usb_plugin);
 		ret = fts_write_reg(0x8B, b_usb_plugin);
 		if ( ret < 0 )
 		{
-			FTS_INFO("Fts usb detect write err: %s %d.\n",__func__,b_usb_plugin);
+			FTS_DEBUG("Fts usb detect write err: %s %d.\n",__func__,b_usb_plugin);
 		}
 	}
 #endif
@@ -131,7 +131,7 @@ int fts_wait_tp_to_valid(void)
         if ((ret < 0) || (reg_value != chip_id)) {
             FTS_DEBUG("TP Not Ready, ReadData = 0x%x", reg_value);
         } else if (reg_value == chip_id) {
-            FTS_INFO("TP Ready, Device ID = 0x%x", reg_value);
+            FTS_DEBUG("TP Ready, Device ID = 0x%x", reg_value);
             return 0;
         }
         cnt++;
@@ -344,7 +344,7 @@ static int fts_get_ic_information(struct fts_ts_data *ts_data)
     } while ((cnt * INTERVAL_READ_REG) < TIMEOUT_READ_REG);
 
     if ((cnt * INTERVAL_READ_REG) >= TIMEOUT_READ_REG) {
-        FTS_INFO("fw is invalid, need read boot id");
+        FTS_DEBUG("fw is invalid, need read boot id");
         if (ts_data->ic_info.hid_supported) {
             fts_hid2std();
         }
@@ -362,7 +362,7 @@ static int fts_get_ic_information(struct fts_ts_data *ts_data)
         }
     }
 
-    FTS_INFO("get ic information, chip id = 0x%02x%02x",
+    FTS_DEBUG("get ic information, chip id = 0x%02x%02x",
              ts_data->ic_info.ids.chip_idh, ts_data->ic_info.ids.chip_idl);
 
     return 0;
@@ -477,7 +477,7 @@ static int fts_input_report_b(struct fts_ts_data *data)
 
     if (!data->fod_point_released && data->point_num == 0) {
         fts_release_all_finger();
-        FTS_INFO("%s Normal report release all fingers\n", __func__);
+        FTS_DEBUG("%s Normal report release all fingers\n", __func__);
         data->fod_point_released = true;
     }
 
@@ -512,7 +512,7 @@ static int fts_input_report_b(struct fts_ts_data *data)
 
             if (data->point_id_changed && data->old_point_id != 0xff
                 && data->tid->fod_status == 0 && data->old_point_id != events[i].id) {
-                FTS_INFO("%s FOD finger ID is Changed, release old id\n", __func__);
+                FTS_DEBUG("%s FOD finger ID is Changed, release old id\n", __func__);
                 input_mt_slot(data->input_dev, data->old_point_id);
                 input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER, 0);
                 input_sync(data->input_dev);
@@ -643,7 +643,7 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 
 #if FTS_FOD_EN
 	if (0 == fts_fod_readdata(data, NULL)) {
-		FTS_INFO("succuss to get FOD data in irq handler");
+		FTS_DEBUG("succuss to get FOD data in irq handler");
         ret = fts_read_reg(FTS_REG_INT_ACK, &reg_value);
         if (ret < 0) {
             FTS_ERROR("read int ack error");
@@ -697,7 +697,7 @@ static int fts_read_parse_touchdata(struct fts_ts_data *data)
     }
 
     if (data->point_num > max_touch_num) {
-        FTS_INFO("invalid point_num(%d)", data->point_num);
+        FTS_DEBUG("invalid point_num(%d)", data->point_num);
         return -EIO;
     }
 
@@ -722,13 +722,13 @@ static int fts_read_parse_touchdata(struct fts_ts_data *data)
         events[i].p =  buf[FTS_TOUCH_PRE_POS + base];
 
         if (EVENT_DOWN(events[i].flag) && (data->point_num == 0)) {
-            FTS_INFO("abnormal touch data from fw");
+            FTS_DEBUG("abnormal touch data from fw");
             return -EIO;
         }
     }
 
     if (data->touch_point == 0) {
-        FTS_INFO("no touch point information");
+        FTS_DEBUG("no touch point information");
         return -EIO;
     }
 
@@ -776,7 +776,7 @@ static int fts_irq_registration(struct fts_ts_data *ts_data)
 
     ts_data->irq = gpio_to_irq(pdata->irq_gpio);
     pdata->irq_gpio_flags = IRQF_TRIGGER_FALLING | IRQF_ONESHOT;
-    FTS_INFO("irq:%d, flag:%x", ts_data->irq, pdata->irq_gpio_flags);
+    FTS_DEBUG("irq:%d, flag:%x", ts_data->irq, pdata->irq_gpio_flags);
     ret = request_threaded_irq(ts_data->irq, NULL, fts_irq_handler,
                                pdata->irq_gpio_flags,
                                FTS_DRIVER_NAME, ts_data);
@@ -792,7 +792,7 @@ static void fts_switch_mode_work(struct work_struct *work)
     unsigned char double_val;
     int ret;
 
-	FTS_INFO("%s mode %d", __func__, value);
+	FTS_DEBUG("%s mode %d", __func__, value);
 
 	if (value >= INPUT_EVENT_WAKUP_MODE_OFF && value <= INPUT_EVENT_WAKUP_MODE_ON) {
 		enable = !!(value - INPUT_EVENT_WAKUP_MODE_OFF);
@@ -806,7 +806,7 @@ static void fts_switch_mode_work(struct work_struct *work)
 
     if (enable) {
         double_val |= (1 << 0);
-        FTS_INFO("CF register double_wakeup's bit set 1, CF register = %x", double_val);
+        FTS_DEBUG("CF register double_wakeup's bit set 1, CF register = %x", double_val);
 
         ret = fts_write_reg(FTS_REG_FOD_EN, double_val);
         if (ret < 0) {
@@ -814,7 +814,7 @@ static void fts_switch_mode_work(struct work_struct *work)
         }
     } else {
         double_val &= ~(1 << 0);
-        FTS_INFO("CF register double_wakeup's bit set 0, CF register = %x", double_val);
+        FTS_DEBUG("CF register double_wakeup's bit set 0, CF register = %x", double_val);
 
         ret = fts_write_reg(FTS_REG_FOD_EN, double_val);
         if (ret < 0) {
@@ -828,7 +828,7 @@ int fts_input_event(struct input_dev *dev, unsigned int type, unsigned int code,
 	struct fts_ts_data *ts_data = input_get_drvdata(dev);
 	struct fts_mode_switch *ms;
 
-	FTS_INFO("set input event value = %d", value);
+	FTS_DEBUG("set input event value = %d", value);
 
 	if (!ts_data) {
 		FTS_ERROR("fts_ts_data is NULL");
@@ -891,7 +891,7 @@ static int fts_input_init(struct fts_ts_data *ts_data)
     __set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 
     if (pdata->have_key) {
-        FTS_INFO("set key capabilities");
+        FTS_DEBUG("set key capabilities");
         for (key_num = 0; key_num < pdata->key_number; key_num++)
             input_set_capability(input_dev, EV_KEY, pdata->keys[key_num]);
     }
@@ -1294,7 +1294,7 @@ static int fts_get_dt_coords(struct device *dev, char *name,
         pdata->y_max = coords[3];
     }
 
-    FTS_INFO("display x(%d %d) y(%d %d)", pdata->x_min, pdata->x_max,
+    FTS_DEBUG("display x(%d %d) y(%d %d)", pdata->x_min, pdata->x_max,
              pdata->y_min, pdata->y_max);
     return 0;
 }
@@ -1337,7 +1337,7 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
         if (ret < 0)
             FTS_ERROR("Key X Coords undefined!");
 
-        FTS_INFO("VK Number:%d, key:(%d,%d,%d), "
+        FTS_DEBUG("VK Number:%d, key:(%d,%d,%d), "
                  "coords:(%d,%d),(%d,%d),(%d,%d)",
                  pdata->key_number,
                  pdata->keys[0], pdata->keys[1], pdata->keys[2],
@@ -1370,7 +1370,7 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
             pdata->max_touch_number = temp_val;
     }
 
-    FTS_INFO("max touch number:%d, irq gpio:%d, reset gpio:%d",
+    FTS_DEBUG("max touch number:%d, irq gpio:%d, reset gpio:%d",
              pdata->max_touch_number, pdata->irq_gpio, pdata->reset_gpio);
 
     FTS_FUNC_EXIT();
@@ -1395,16 +1395,16 @@ static int fb_notifier_callback(struct notifier_block *self,
                                   fb_notif);
 
     if (!(event == MSM_DRM_EARLY_EVENT_BLANK || event == MSM_DRM_EVENT_BLANK)) {
-        FTS_INFO("event(%lu) do not need process\n", event);
+        FTS_DEBUG("event(%lu) do not need process\n", event);
         return 0;
     }
 
     blank = evdata->data;
-    FTS_INFO("FB event:%lu,blank:%d", event, *blank);
+    FTS_DEBUG("FB event:%lu,blank:%d", event, *blank);
     switch (*blank) {
     case MSM_DRM_BLANK_UNBLANK:
         if (MSM_DRM_EVENT_BLANK == event) {
-            FTS_INFO("resume: event = %lu, not care\n", event);
+            FTS_DEBUG("resume: event = %lu, not care\n", event);
         } else if (MSM_DRM_EARLY_EVENT_BLANK == event) {
             queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
         }
@@ -1413,18 +1413,18 @@ static int fb_notifier_callback(struct notifier_block *self,
 //    case MSM_DRM_BLANK_LP1:
 //    case MSM_DRM_BLANK_LP2:
         if (ts_data->finger_in_fod) {
-            FTS_INFO("set fod finger skip\n");
+            FTS_DEBUG("set fod finger skip\n");
             ts_data->fod_finger_skip = true;
         }
         if (MSM_DRM_EARLY_EVENT_BLANK == event) {
             cancel_work_sync(&fts_data->resume_work);
             fts_ts_suspend(ts_data->dev);
         } else if (MSM_DRM_EVENT_BLANK == event) {
-            FTS_INFO("suspend: event = %lu, not care\n", event);
+            FTS_DEBUG("suspend: event = %lu, not care\n", event);
         }
         break;
     default:
-        FTS_INFO("FB BLANK(%d) do not need process\n", *blank);
+        FTS_DEBUG("FB BLANK(%d) do not need process\n", *blank);
         break;
     }
 
@@ -1736,12 +1736,12 @@ static int fts_ts_suspend(struct device *dev)
 
     FTS_FUNC_ENTER();
     if (ts_data->suspended) {
-        FTS_INFO("Already in suspend state");
+        FTS_DEBUG("Already in suspend state");
         return 0;
     }
 
     if (ts_data->fw_loading) {
-        FTS_INFO("fw upgrade in process, can't suspend");
+        FTS_DEBUG("fw upgrade in process, can't suspend");
         return 0;
     }
 
@@ -1761,7 +1761,7 @@ static int fts_ts_suspend(struct device *dev)
         ts_data->suspended = true;
         ts_data->old_point_id = 0xff;
         ts_data->point_id_changed = false;
-        FTS_INFO("%s Tp enter suspend, set old_point_id as default value\n", __func__);
+        FTS_DEBUG("%s Tp enter suspend, set old_point_id as default value\n", __func__);
         if(tid->fod_status || ts_data->lpwg_mode || tid->aod_status)
 		    return 0;
     }
@@ -1828,7 +1828,7 @@ static int fts_ts_resume(struct device *dev)
         if(ts_data->lpwg_mode)
             value |= 1;
 
-        FTS_INFO("resume CF register value retry write, CF register = %x", value);
+        FTS_DEBUG("resume CF register value retry write, CF register = %x", value);
         ret = fts_write_reg(FTS_REG_FOD_EN, value);
         if (ret < 0) {
             FTS_ERROR("set FOD(resume) fail");
@@ -1865,7 +1865,7 @@ static int tid_open_short_test(struct device *dev, struct seq_file *seq,
     struct input_dev *input_dev;
 
     if (ts_data->suspended) {
-        FTS_INFO("In suspend, no test, return now");
+        FTS_DEBUG("In suspend, no test, return now");
         return -EINVAL;
     }
 
@@ -1886,7 +1886,7 @@ static int tid_get_lockdown_info(struct device *dev, char *out_values)
     struct fts_ts_data *ts_data = fts_data;
     struct touch_info_dev *tid = ts_data->tid;
 
-    FTS_INFO("reading lockdown info");
+    FTS_DEBUG("reading lockdown info");
     ret = fts_flash_read(0x1e000, (unsigned char*)out_values, 8);
 
 #ifdef USB_CHARGE_DETECT
@@ -1900,7 +1900,7 @@ static int tid_get_lockdown_info(struct device *dev, char *out_values)
         value |= 1;
 
     if(value) {
-        FTS_INFO("suspend CF register value retry write, CF register = %x", value);
+        FTS_DEBUG("suspend CF register value retry write, CF register = %x", value);
         if (fts_write_reg(FTS_REG_FOD_EN, value) < 0)
             FTS_ERROR("set FOD(resume) fail");
     }
@@ -1914,7 +1914,7 @@ static int tid_fod_status_set(struct device *dev, int fod_values)
 {
 	struct fts_ts_data *ts_data = fts_data;
 
-    FTS_INFO("FOD status set");
+    FTS_DEBUG("FOD status set");
 	mutex_lock(&ts_data->fod_mutex);
 	if (fod_values) {
 		fts_fod_suspend(fts_data);
@@ -1993,7 +1993,7 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
     struct touch_info_dev *tid;
     struct touch_info_dev_operations *tid_ops;
 
-    FTS_INFO("Touch Screen(I2C BUS) driver prboe...");
+    FTS_DEBUG("Touch Screen(I2C BUS) driver prboe...");
     if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
         FTS_ERROR("I2C not supported");
         return -ENODEV;
@@ -2039,7 +2039,7 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
     if (unlikely(ret))
         return ret;
 
-    FTS_INFO("Touch Screen(I2C BUS) driver prboe successfully");
+    FTS_DEBUG("Touch Screen(I2C BUS) driver prboe successfully");
     return 0;
 }
 

@@ -173,7 +173,7 @@ static ssize_t fts_debug_write(
         snprintf(tmp, sizeof(tmp), "%s", writebuf + 1);
         tmp[buflen - 1] = '\0';
         if (strncmp(tmp, "focal_driver", 12) == 0) {
-            FTS_INFO("APK execute HW Reset");
+            FTS_DEBUG("APK execute HW Reset");
             fts_reset_proc(0);
         }
         break;
@@ -378,7 +378,7 @@ static int fts_debug_write(
         snprintf(tmp, PAGE_SIZE, "%s", writebuf + 1);
         tmp[buflen - 1] = '\0';
         if (strncmp(tmp, "focal_driver", 12) == 0) {
-            FTS_INFO("APK execute HW Reset");
+            FTS_DEBUG("APK execute HW Reset");
             fts_reset_proc(0);
         }
         break;
@@ -493,7 +493,7 @@ int fts_create_apk_debug_channel(struct fts_ts_data *ts_data)
     proc->proc_entry->read_proc = fts_debug_read;
 #endif
 
-    FTS_INFO("Create proc entry success!");
+    FTS_DEBUG("Create proc entry success!");
     return 0;
 }
 
@@ -555,10 +555,10 @@ static ssize_t fts_irq_store(
 
     mutex_lock(&input_dev->mutex);
     if (FTS_SYSFS_ECHO_ON(buf)) {
-        FTS_INFO("enable irq");
+        FTS_DEBUG("enable irq");
         fts_irq_enable();
     } else if (FTS_SYSFS_ECHO_OFF(buf)) {
-        FTS_INFO("disable irq");
+        FTS_DEBUG("disable irq");
         fts_irq_disable();
     }
     mutex_unlock(&input_dev->mutex);
@@ -575,10 +575,10 @@ static ssize_t fts_bootmode_store(
     FTS_FUNC_ENTER();
     mutex_lock(&input_dev->mutex);
     if (FTS_SYSFS_ECHO_ON(buf)) {
-        FTS_INFO("[EX-FUN]set to boot mode");
+        FTS_DEBUG("[EX-FUN]set to boot mode");
         fts_data->fw_is_running = false;
     } else if (FTS_SYSFS_ECHO_OFF(buf)) {
-        FTS_INFO("[EX-FUN]set to fw mode");
+        FTS_DEBUG("[EX-FUN]set to fw mode");
         fts_data->fw_is_running = true;
     }
     mutex_unlock(&input_dev->mutex);
@@ -847,7 +847,7 @@ static ssize_t fts_tprwreg_store(
             if (rw_op.res < 0) {
                 FTS_ERROR("Could not read 0x%02x", rw_op.reg);
             } else {
-                FTS_INFO("read 0x%02x, %d bytes successful", rw_op.reg, rw_op.len);
+                FTS_DEBUG("read 0x%02x, %d bytes successful", rw_op.reg, rw_op.len);
                 rw_op.res = 0;
             }
 
@@ -864,7 +864,7 @@ static ssize_t fts_tprwreg_store(
                 FTS_ERROR("Could not write 0x%02x", rw_op.reg);
 
             } else {
-                FTS_INFO("Write 0x%02x, %d bytes successful", rw_op.val, rw_op.len);
+                FTS_DEBUG("Write 0x%02x, %d bytes successful", rw_op.val, rw_op.len);
                 rw_op.res = 0;
             }
         }
@@ -900,7 +900,7 @@ static ssize_t fts_fwupgradebin_store(
     snprintf(fwname, sizeof(fwname), "%s", buf);
     fwname[count - 1] = '\0';
 
-    FTS_INFO("upgrade with bin file through sysfs node");
+    FTS_DEBUG("upgrade with bin file through sysfs node");
     mutex_lock(&input_dev->mutex);
     fts_upgrade_bin(fwname, 0);
     mutex_unlock(&input_dev->mutex);
@@ -930,7 +930,7 @@ static ssize_t fts_fwforceupg_store(
     snprintf(fwname, sizeof(fwname), "%s", buf);
     fwname[count - 1] = '\0';
 
-    FTS_INFO("force upgrade through sysfs node");
+    FTS_DEBUG("force upgrade through sysfs node");
     mutex_lock(&input_dev->mutex);
     fts_upgrade_bin(fwname, 1);
     mutex_unlock(&input_dev->mutex);
@@ -1151,7 +1151,7 @@ int fts_create_sysfs(struct fts_ts_data *ts_data)
         sysfs_remove_group(&ts_data->dev->kobj, &fts_attribute_group);
         return -ENOMEM;
     } else {
-        FTS_INFO("[EX]: sysfs_create_group() succeeded!!");
+        FTS_DEBUG("[EX]: sysfs_create_group() succeeded!!");
     }
 
     return ret;

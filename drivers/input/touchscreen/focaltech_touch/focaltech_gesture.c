@@ -165,10 +165,10 @@ void fts_gesture_enable(bool enable)
 	mutex_lock(&input_dev->mutex);
 
 	if (enable) {
-		FTS_INFO("[GESTURE]enable gesture");
+		FTS_DEBUG("[GESTURE]enable gesture");
 		fts_gesture_data.mode = ENABLE;
 	} else {
-		FTS_INFO("[GESTURE]disable gesture");
+		FTS_DEBUG("[GESTURE]disable gesture");
 		fts_gesture_data.mode = DISABLE;
 	}
 
@@ -452,7 +452,7 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
             }
 			ts_data->finger_in_fod = true;
 			if (!ts_data->suspended) {
-				pr_info("FTS:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
+				FTS_DEBUG("FTS:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
                 mutex_unlock(&ts_data->report_mutex);
 				return -EINVAL;
 			}
@@ -480,9 +480,9 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 			ts_data->fod_finger_skip = false;
             ts_data->old_point_id = 0xff;
             ts_data->point_id_changed = false;
-            FTS_INFO("set fod finger skip false, set old_point_id as default value\n");
+            FTS_DEBUG("set fod finger skip false, set old_point_id as default value\n");
 			if (!ts_data->suspended ) {
-				pr_info("FTS_UP:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
+				FTS_DEBUG("FTS_UP:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
 				return -EINVAL;
 			}
 			mutex_lock(&ts_data->report_mutex);
@@ -531,7 +531,7 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data)
     int i = 0;
     u8 state = 0xFF;
 	unsigned char double_val;
-    FTS_INFO("gesture suspend...");
+    FTS_DEBUG("gesture suspend...");
     /* gesture not enable, return immediately */
     if (fts_gesture_data.mode == DISABLE) {
         FTS_DEBUG("gesture is disabled");
@@ -544,7 +544,7 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data)
     for (i = 0; i < 5; i++) {
 		if(ts_data->lpwg_mode){
 			double_val |= (1 << 0);
-	        FTS_INFO("CF register double_wakeup's bit set 1, CF register = %x", double_val);
+	        FTS_DEBUG("CF register double_wakeup's bit set 1, CF register = %x", double_val);
 	        ret = fts_write_reg(FTS_REG_FOD_EN, double_val);
 	        if (ret < 0) {
 	            FTS_ERROR("set double_wakeup fail");
@@ -569,7 +569,7 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data)
     }
 
     fts_gesture_data.active = ENABLE;
-    FTS_INFO("Enter into gesture(suspend) successfully!");
+    FTS_DEBUG("Enter into gesture(suspend) successfully!");
     return 0;
 }
 
@@ -581,7 +581,7 @@ int fts_fod_pay(struct fts_ts_data *ts_data)
         fts_write_reg(FTS_REG_FOD_EN, 0x02);
     }
 
-    FTS_INFO("Enter into FOD(pay) successfully!");
+    FTS_DEBUG("Enter into FOD(pay) successfully!");
     return 0;
 }
 
@@ -590,7 +590,7 @@ int fts_fod_suspend(struct fts_ts_data *ts_data)
     int ret = 0;
     unsigned char fodval;
 
-    FTS_INFO("FOD suspend...");
+    FTS_DEBUG("FOD suspend...");
 
     ret = fts_read_reg(FTS_REG_FOD_EN, &fodval);
     if (ret < 0) {
@@ -599,7 +599,7 @@ int fts_fod_suspend(struct fts_ts_data *ts_data)
     }
 
     fodval |= (1 << 1);
-    FTS_INFO("CF register fod's bit set 1,  CF register = %x", fodval);
+    FTS_DEBUG("CF register fod's bit set 1,  CF register = %x", fodval);
 
     ret = fts_write_reg(FTS_REG_FOD_EN, fodval);
     if (ret < 0) {
@@ -612,7 +612,7 @@ int fts_fod_suspend(struct fts_ts_data *ts_data)
         FTS_DEBUG("enable_irq_wake(irq:%d) fail", ts_data->irq);
     }
 
-    FTS_INFO("Enter into FOD(suspend) successfully!");
+    FTS_DEBUG("Enter into FOD(suspend) successfully!");
     return 0;
 }
 
@@ -622,7 +622,7 @@ int fts_gesture_resume(struct fts_ts_data *ts_data)
     int i = 0;
     u8 state = 0xFF;
 
-    FTS_INFO("gesture resume...");
+    FTS_DEBUG("gesture resume...");
     /* gesture not enable, return immediately */
     if (fts_gesture_data.mode == DISABLE) {
         FTS_DEBUG("gesture is disabled");
@@ -653,7 +653,7 @@ int fts_gesture_resume(struct fts_ts_data *ts_data)
         FTS_DEBUG("disable_irq_wake(irq:%d) fail", ts_data->irq);
     }
 
-    FTS_INFO("resume from gesture successfully");
+    FTS_DEBUG("resume from gesture successfully");
     return 0;
 }
 
@@ -666,7 +666,7 @@ int fts_fod_resume(struct fts_ts_data *ts_data)
     msleep(40);
     flush_work(&ts_data->resume_work);
 
-    FTS_INFO("FOD resume...");
+    FTS_DEBUG("FOD resume...");
 
     ret = fts_read_reg(FTS_REG_FOD_EN, &fodval);
     if (ret < 0) {
@@ -675,7 +675,7 @@ int fts_fod_resume(struct fts_ts_data *ts_data)
     }
 
     fodval &= ~(1 << 1);
-    FTS_INFO("CF register fod's bit set 0, CF register = %x", fodval);
+    FTS_DEBUG("CF register fod's bit set 0, CF register = %x", fodval);
 
 	ret = fts_write_reg(FTS_REG_FOD_EN, fodval);
     if (ret < 0) {
@@ -695,7 +695,7 @@ int fts_fod_resume(struct fts_ts_data *ts_data)
     fts_data->finger_in_fod = false;
     ts_data->fod_finger_skip = false;
 
-    FTS_INFO("resume from FOD successfully");
+    FTS_DEBUG("resume from FOD successfully");
     return 0;
 }
 

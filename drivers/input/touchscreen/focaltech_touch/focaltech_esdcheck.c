@@ -107,7 +107,7 @@ int idc_esdcheck_lcderror(struct fts_ts_data *ts_data)
         * 2. LCD driver need reset(recovery) LCD and set lcd_need_reset to 0
         * 3. recover TP state
         */
-        FTS_INFO("LCD ESD, Execute LCD reset!");
+        FTS_DEBUG("LCD ESD, Execute LCD reset!");
         lcd_need_reset = 1;
         tp_need_recovery = 1;
     }
@@ -235,7 +235,7 @@ static int esdcheck_algorithm(struct fts_ts_data *ts_data)
 
     /* 3. check fts_esdcheck_data.proc_debug state, if 1-proc busy, no need check esd*/
     if (fts_esdcheck_data.proc_debug == 1) {
-        FTS_INFO("[ESD]: In apk or adb command mode, not check esd, return immediately!!");
+        FTS_DEBUG("[ESD]: In apk or adb command mode, not check esd, return immediately!!");
         return 0;
     }
 
