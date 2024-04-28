@@ -1,11 +1,11 @@
-#include "linux/err.h"
-#include "linux/fs.h"
-#include "linux/list.h"
-#include "linux/slab.h"
-#include "linux/string.h"
-#include "linux/types.h"
-#include "linux/version.h"
-#include "linux/workqueue.h"
+#include <linux/err.h>
+#include <linux/fs.h>
+#include <linux/list.h>
+#include <linux/slab.h>
+#include <linux/string.h>
+#include <linux/types.h>
+#include <linux/version.h>
+#include <linux/workqueue.h>
 
 #include "allowlist.h"
 #include "klog.h" // IWYU pragma: keep
@@ -159,8 +159,7 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 		iterate_dir(file, &sub_ctx.ctx);
 		filp_close(file, NULL);
 	} else {
-		if ((strlen(name) == strlen("base.apk")) &&
-		    (strncmp(name, "base.apk", strlen("base.apk")) == 0)) {
+		if ((namelen == 8) && (strncmp(name, "base.apk", namelen) == 0)) {
 			bool is_manager = is_manager_apk(dirpath);
 			pr_info("Found base.apk at path: %s, is_manager: %d\n",
 				dirpath, is_manager);
