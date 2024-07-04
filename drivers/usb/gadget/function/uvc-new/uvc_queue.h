@@ -98,4 +98,3 @@ void uvcg_complete_buffer(struct uvc_video_queue *queue,
 struct uvc_buffer *uvcg_queue_head(struct uvc_video_queue *queue);
 
 #endif /* _UVC_QUEUE_H_ */
-
