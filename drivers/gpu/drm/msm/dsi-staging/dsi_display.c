@@ -48,7 +48,6 @@
 #define MAX_NAME_SIZE	64
 
 #define DSI_CLOCK_BITRATE_RADIX 10
-#define DSI_FOD_HBM_RADIX 10
 #define MAX_TE_SOURCE_ID  2
 #define AOD_BRIGHTNESS 190
 
@@ -343,7 +342,7 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 	pr_info("dimmingon\n");
 	break;
 	case BLIGHTNESS_400NIT:
-	
+
 	panel->fod_backlight_flag = false;
 	if(panel->sansumg_flag){
 	rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_OFF,
@@ -354,7 +353,7 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 	rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
 						2800);
 	pr_info("HBM BLIGHTNESS_400NIT gvo\n");
-	
+
 	}
 	panel->fod_backlight_flag = true;
 	break;
@@ -5467,123 +5466,6 @@ static struct attribute_group dynamic_dsi_clock_fs_attrs_group = {
 	.attrs = dynamic_dsi_clock_fs_attrs,
 };
 
-static ssize_t sysfs_fod_hbm_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	rc = snprintf(buf, PAGE_SIZE, "%d\n", panel->fod_hbm_enabled);
-
-	return rc;
-}
-
-static ssize_t sysfs_fod_hbm_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int status;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtoint(buf, DSI_FOD_HBM_RADIX, &status);
-	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	panel = display->panel;
-
-	dsi_panel_set_fod_hbm(panel, !!status);
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_hbm, 0644,
-			sysfs_fod_hbm_read,
-			sysfs_fod_hbm_write);
-
-static struct attribute *fod_hbm_fs_attrs[] = {
-	&dev_attr_fod_hbm.attr,
-	NULL,
-};
-static struct attribute_group fod_hbm_fs_attrs_group = {
-	.attrs = fod_hbm_fs_attrs,
-};
-
-static ssize_t sysfs_fod_ui_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	bool status;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	status = atomic_read(&display->fod_ui);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", status);
-}
-
-bool is_dimlayer_hbm_enabled;
-static ssize_t dimlayer_hbm_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-	if (!display->panel)
-		return 0;
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", is_dimlayer_hbm_enabled);
-}
-
-static ssize_t dimlayer_hbm_store(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	int ret = 0;
-	struct dsi_display *display = dev_get_drvdata(dev);
-	if (!display->panel)
-		return ret;
-
-	sscanf(buf, "%d", &ret);
-
-	is_dimlayer_hbm_enabled = ret > 0;
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_ui, 0444,
-			sysfs_fod_ui_read,
-			NULL);
-
-DEVICE_ATTR_RW(dimlayer_hbm);
-
-static struct attribute *display_fs_attrs[] = {
-	&dev_attr_fod_ui.attr,
-	&dev_attr_dimlayer_hbm.attr,
-	NULL,
-};
-static struct attribute_group display_fs_attrs_group = {
-	.attrs = display_fs_attrs,
-};
-
 static int dsi_display_validate_split_link(struct dsi_display *display)
 {
 	int i, rc = 0;
@@ -5620,15 +5502,39 @@ error:
 	return rc;
 }
 
+static ssize_t sysfs_fod_ui_read(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct dsi_display *display;
+	bool status;
+
+	display = dev_get_drvdata(dev);
+	if (!display) {
+		pr_err("Invalid display\n");
+		return -EINVAL;
+	}
+
+	status = atomic_read(&display->fod_ui);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", status);
+}
+
+static DEVICE_ATTR(fod_ui, 0444,
+			sysfs_fod_ui_read,
+			NULL);
+
+static struct attribute *display_fs_attrs[] = {
+	&dev_attr_fod_ui.attr,
+	NULL,
+};
+static struct attribute_group display_fs_attrs_group = {
+	.attrs = display_fs_attrs,
+};
+
 static int dsi_display_sysfs_init(struct dsi_display *display)
 {
 	int rc = 0;
 	struct device *dev = &display->pdev->dev;
-
-	rc = sysfs_create_group(&dev->kobj,
-			&fod_hbm_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create fod hbm device attributes");
 
 	rc = sysfs_create_group(&dev->kobj, &display_fs_attrs_group);
 	if (rc)

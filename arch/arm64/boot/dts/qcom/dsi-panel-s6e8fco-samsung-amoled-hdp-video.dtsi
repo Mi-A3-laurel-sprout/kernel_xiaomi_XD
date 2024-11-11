@@ -67,8 +67,10 @@
 		qcom,mdss-dsi-lane-1-state;
 		qcom,mdss-dsi-lane-2-state;
 		qcom,mdss-dsi-lane-3-state;
+		qcom,mdss-dsi-panel-physical-type = "oled";
 		qcom,mdss-dsi-dma-trigger = "trigger_sw";
 		qcom,mdss-dsi-mdp-trigger = "none";
+		qcom,mdss-dsi-bl-inverted-dbv;
 		qcom,mdss-dsi-lp11-init;
 		qcom,bl-update-flag = "delay_until_first_frame";
 		qcom,mdss-dsi-samsung-flag;
@@ -78,58 +80,61 @@
 		qcom,mdss-pan-physical-height-dimension = <140>;
 		qcom,mdss-dsi-pan-enable-dynamic-fps;
 		qcom,dsi-supported-dfps-list = <66 60 30>;
+		qcom,disp-doze-lbm-backlight = <15>;
+		qcom,disp-doze-hbm-backlight = <190>;
+		qcom,mdss-dsi-panel-dc-threshold = <320>;
 
-		qcom,disp-fod-off-dimming-delay = <85>;
-		qcom,disp-dc-dimlayer-backlight = <255>;
 		qcom,disp-fod-dim-lut = <
 			/* brightness, alpha */
-			6	0xF4
-			26	0xE9
-			62	0xDF
-			116	0xD5
-			192	0xCA
-			286	0xC0
-			400	0xB5
-			538	0xAB
-			696	0xA0
-			878	0x96
-			1102	0x8A
-			1334	0x80
-			1588	0x75
-			1868	0x6B
-			2172	0x60
-			2500	0x56
-			2854	0x4B
-			3236	0x41
-			3642	0x36
-			4095	0x2B
+			0	0XFF
+			1	0XF3
+			16	0XD8
+			33	0XCA
+			48	0XC1
+			97	0XAC
+			146	0X9D
+			194	0X90
+			243	0X85
+			292	0X7B
+			341	0X72
+			389	0X6A
+			438	0X69
+			487	0X62
+			535	0X5B
+			584	0X55
+			633	0X4F
+			682	0X4A
+			730	0X44
+			779	0X3F
+			828	0X3A
+			876	0X35
+			925	0X31
+			974	0X2C
+			1023	0X28
 		>;
-
-		qcom,disp-bl-dim-lut = <
+		qcom,disp-dc-dim-lut = <
 			/* brightness, alpha */
-			0	0xFF
-			1	0xE0
-			2	0xD6
-			3	0xD5
-			4	0xCf
-			5	0xCb
-			6	0xC9
-			8	0xC5
-			10	0xC1
-			15	0xB6
-			20	0xAc
-			30	0x9D
-			45	0x82
-			70	0x6C
-			100	0x56
-			120	0x47
-			140	0x3A
-			160	0x2F
-			180	0x22
-			200	0x16
-			220	0x0E
-			240	0x06
-			255	0x00
+			0	0XFF
+			1	0XE8
+			3	0XDB
+			5	0XD3
+			9	0XC6
+			15	0XB9
+			22	0XAC
+			32	0X9E
+			43	0X92
+			56	0X85
+			69	0X79
+			86	0X6C
+			104	0X60
+			124	0X54
+			145	0X48
+			169	0X3C
+			196	0X2F
+			224	0X23
+			253	0X18
+			285	0XC
+			320	0X0
 		>;
 
 		qcom,mdss-dsi-display-timings {
@@ -175,11 +180,11 @@
 				qcom,mdss-dsi-post-panel-on-command = [
 				  15 01 00 00 00 00 02 55 01
 				];
-				qcom,mdss-dsi-doze-lb-command = [
+				qcom,mdss-dsi-doze-lbm-command = [
 				  15 01 00 00 00 00 02 53 20
 				  39 01 00 00 00 00 03 51 00 0F
 				];
-				qcom,mdss-dsi-doze-hb-command = [
+				qcom,mdss-dsi-doze-hbm-command = [
 				  15 01 00 00 00 00 02 53 20
 				  39 01 00 00 00 00 03 51 00 BE
 				];
@@ -198,11 +203,19 @@
 				qcom,mdss-dsi-dimming-enable-command = [
 				  15 01 00 00 00 00 02 53 28
 				];
+				qcom,mdss-dsi-dispparam-hbm-fod-on-command = [
+					15 01 00 00 20 00 02 53 E0];
+				qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
+					15 01 00 00 20 00 02 53 20];
+				qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command = [
+					15 01 00 00 10 00 02 53 23];
+				qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command = [
+					15 01 00 00 10 00 02 53 22];
 
 				qcom,mdss-dsi-post-on-command-state = "dsi_hs_mode";
 
-				qcom,mdss-dsi-doze-lb-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-doze-hb-command-state = "dsi_hs_mode";
+				qcom,mdss-dsi-doze-lbm-command-state = "dsi_hs_mode";
+				qcom,mdss-dsi-doze-hbm-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-nolp-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-dimming-brightness-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-brightness-command-state = "dsi_hs_mode";
@@ -211,13 +224,10 @@
 			    qcom,mdss-dsi-acl-off-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-on-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
-					15 01 00 00 10 00 02 53 20];
-				qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-dispparam-hbm-fod-on-command = [
-					15 01 00 00 10 00 02 53 E0];
-
 				qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command-state = "dsi_hs_mode";
+				qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command-state = "dsi_hs_mode";
 			};
 		};
 	};

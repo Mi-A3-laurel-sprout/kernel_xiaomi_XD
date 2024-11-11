@@ -25,7 +25,7 @@
 #include "sde_rm.h"
 
 #define BL_NODE_NAME_SIZE 32
-#define LIMIT_PANEL_ERROR_MAX_TIMES 15  
+#define LIMIT_PANEL_ERROR_MAX_TIMES 15
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -87,6 +87,9 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	display = (struct dsi_display *) c_conn->display;
 	if (brightness > PANEL_BRIGHTNESS_MAX_LEVEL)
 		brightness = PANEL_BRIGHTNESS_MAX_LEVEL;
+
+	if(brightness && brightness < display->panel->bl_config.bl_min_level)
+		brightness = display->panel->bl_config.bl_min_level;
 
 	/* map UI brightness into driver backlight level with rounding */
 	bl_lvl = mult_frac(brightness, display->panel->bl_config.bl_max_level,
@@ -586,6 +589,41 @@ static int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
+void sde_connector_update_fod_hbm(struct drm_connector *connector)
+{
+	static atomic_t effective_status = ATOMIC_INIT(false);
+	struct sde_crtc_state *cstate;
+	struct sde_connector *c_conn;
+	struct dsi_display *display;
+	bool status;
+
+	if (!connector) {
+		SDE_ERROR("invalid connector\n");
+		return;
+	}
+
+	c_conn = to_sde_connector(connector);
+	if (c_conn->connector_type != DRM_MODE_CONNECTOR_DSI)
+		return;
+
+	display = (struct dsi_display *) c_conn->display;
+
+	if (!c_conn->encoder || !c_conn->encoder->crtc ||
+			!c_conn->encoder->crtc->state)
+		return;
+
+	cstate = to_sde_crtc_state(c_conn->encoder->crtc->state);
+	status = cstate->fod_dim_layer != NULL;
+	if (atomic_xchg(&effective_status, status) == status)
+		return;
+
+	mutex_lock(&display->panel->panel_lock);
+	dsi_panel_set_fod_hbm(display->panel, status);
+	mutex_unlock(&display->panel->panel_lock);
+
+	dsi_display_set_fod_ui(display, status);
+}
+
 int sde_connector_pre_kickoff(struct drm_connector *connector)
 {
 	struct sde_connector *c_conn;
@@ -618,6 +656,8 @@ int sde_connector_pre_kickoff(struct drm_connector *connector)
 	params.hdr_meta = &c_state->hdr_meta;
 
 	SDE_EVT32_VERBOSE(connector->base.id);
+
+	sde_connector_update_fod_hbm(connector);
 
 	rc = c_conn->ops.pre_kickoff(connector, c_conn->display, &params);
 
@@ -1930,7 +1970,7 @@ int sde_connector_esd_status(struct drm_connector *conn)
 static void sde_connector_check_status_work(struct work_struct *work)
 {
 	struct sde_connector *conn;
-	static int record_panel_error_times = 0; 
+	static int record_panel_error_times = 0;
 	int rc = 0;
 
 	conn = container_of(to_delayed_work(work),
