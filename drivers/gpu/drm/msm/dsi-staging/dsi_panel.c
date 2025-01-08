@@ -457,10 +457,6 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 		goto error_disable_vregs;
 	}
 
-	/* If LP11_INIT is set, skip panel reset here*/
-	if (panel->lp11_init)
-		goto exit;
-
 	rc = dsi_panel_reset(panel);
 	if (rc) {
 		pr_err("[%s] failed to reset panel, rc=%d\n", panel->name, rc);
@@ -639,7 +635,6 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	pr_err("%s bl_level(%d).\n", __func__, bl_lvl);
 	}
 
-	panel->hw_bl_lvl = bl_lvl;
 	dsi = &panel->mipi_device;
 
 	if (bl_lvl == 0) {
@@ -809,129 +804,6 @@ int dsi_panel_set_dimming_brightness(struct dsi_panel *panel, u8 dimming, u32 br
 	return rc;
 }
 
-static int __dsi_panel_send(struct dsi_panel *panel, enum dsi_cmd_set_type type,
-			    const char *name)
-{
-	int rc;
-
-	rc = dsi_panel_tx_cmd_set(panel, type);
-	if (rc)
-		pr_err("Failed to send %s cmd, rc=%d\n", name, rc);
-
-	return rc;
-}
-
-#define DSI_PANEL_SEND(PANEL, CMDSET)					\
-	__dsi_panel_send(PANEL, __PASTE(DSI_CMD_SET_,CMDSET),		\
-			 __stringify(CMDSET))
-
-static int dsi_panel_set_hbm(struct dsi_panel *panel, bool enabled)
-{
-	return enabled ?
-		DSI_PANEL_SEND(panel, DISP_HBM_FOD_ON) :
-		DSI_PANEL_SEND(panel, DISP_HBM_FOD_OFF);
-}
-
-static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
-{
-	if (panel->doze_status) {
-		if (panel->hbm_enabled)
-			return panel->bl_config.bl_doze_hbm;
-		else
-			return panel->bl_config.bl_doze_lpm;
-	}
-
-	return panel->bl_config.bl_level;
-}
-
-static int dsi_panel_adj_dc_backlight(struct dsi_panel *panel, bool status)
-{
-	u32 bl_lvl = dsi_panel_get_backlight(panel);
-	int rc;
-
-	if (status)
-		bl_lvl = max(bl_lvl, panel->bl_config.bl_dc_thresh);
-
-	rc = dsi_panel_update_backlight(panel, bl_lvl);
-	if (rc)
-		pr_err("Failed to update backlight\n");
-
-	return rc;
-}
-
-enum msm_dim_layer_type dsi_panel_update_dimlayer(struct dsi_panel *panel,
-						  enum msm_dim_layer_type type,
-						  u32 alpha)
-{
-	bool adjust_bl = false;
-
-	dsi_panel_acquire_panel_lock(panel);
-
-	/* Skip if type of dimlayer was not changed */
-	if (panel->dimlayer_type == type)
-		goto no_type_change;
-
-	if (type == MSM_DIM_LAYER_FOD) {
-		/* Switch to FOD mode */
-
-		/* Switch to HBM mode if:
-		 * - it is not already enabled by user
-		 * - we are coming from doze mode
-		 */
-		if (!panel->hbm_enabled || panel->doze_status)
-			dsi_panel_set_hbm(panel, true);
-	}
-	else if (panel->dimlayer_type == MSM_DIM_LAYER_FOD) {
-		if (!panel->doze_status) {
-			/* Switch to normal mode */
-
-			/* Switch-off HBM if it is not enabled by user */
-			if (!panel->hbm_enabled)
-				dsi_panel_set_hbm(panel, false);
-		} else {
-			/* Switch back to doze mode */
-			if (panel->hbm_enabled)
-				DSI_PANEL_SEND(panel,
-					       DISP_HBM_FOD_OFF_DOZE_HBM_ON);
-			else
-				DSI_PANEL_SEND(panel,
-					       DISP_HBM_FOD_OFF_DOZE_LBM_ON);
-		}
-	}
-	else if (panel->dimlayer_type == MSM_DIM_LAYER_TOP ||
-		 type == MSM_DIM_LAYER_TOP) {
-		/* Switching DC dimming on or off. Adjust backlight.  */
-		adjust_bl = true;
-	}
-
-	/* Swap new status with previous one */
-	type = xchg(&panel->dimlayer_type, type);
-
-no_type_change:
-	/* Update stored alpha if it was changed and dim layer type is TOP */
-	if (panel->dimlayer_type == MSM_DIM_LAYER_TOP &&
-	    panel->dc_dim_alpha != alpha) {
-		panel->dc_dim_alpha = alpha;
-
-		/* Alpha value was changed so we need to set HW backlight
-		 * back to DC threshold.
-		 */
-		adjust_bl = true;
-	}
-
-	/* Adjust DC backlight if necessary */
-	if (adjust_bl)
-		dsi_panel_adj_dc_backlight(panel, panel->dc_dimming);
-
-	dsi_panel_release_panel_lock(panel);
-
-	/* Return previous dimming layer type */
-	return type;
-}
-
-static u32 alpha_to_brightness(struct brightness_alpha_pair *lut, u32 lut_count,
-			       u32 alpha);
-
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
@@ -943,41 +815,6 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 
 	if (panel->host_config.ext_bridge_mode)
 		return 0;
-
-	/* Modify HW backlight above threshold if:
-	 * - DC dimming is enabled by user
-	 * - requested backlight level is not zero
-	 * - panel is not in doze mode
-	 */
-	if (panel->dc_dimming && bl_lvl && !panel->doze_status) {
-		u32 brightness, hw_bl_lvl;
-
-		/* Get brightness for current dim layer alpha value
-		 * The range is [0, dc_threshold] so for case that
-		 * HW backlight value is dc_threshold.
-		 */
-		brightness = alpha_to_brightness(panel->dc_dim_lut,
-						 panel->dc_dim_lut_count,
-						 panel->dc_dim_alpha);
-
-		/* Get current HW backlight level, if it is zero then
-		 * use DC threshold.
-		 */
-		hw_bl_lvl = panel->hw_bl_lvl ? : bl->bl_dc_thresh;
-
-		/* Transform computed brightness if current HW backlight
-		 * is different from DC threshold.
-		 */
-		if (hw_bl_lvl != bl->bl_dc_thresh)
-			brightness = DIV_ROUND_CLOSEST(brightness * hw_bl_lvl,
-						       bl->bl_dc_thresh);
-
-		/* Compute new HW backlight value that represents (together
-		 * with current dimming layer alpha value) requested
-		 * backlight level.
-		 */
-		bl_lvl = DIV_ROUND_CLOSEST(bl_lvl * hw_bl_lvl, brightness);
-	}
 
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 	switch (bl->type) {
@@ -1057,102 +894,6 @@ static int dsi_panel_pwm_register(struct dsi_panel *panel)
 	}
 
 	return 0;
-}
-
-static int interpolate(int x, int xa, int xb, int ya, int yb)
-{
-	return ya + mult_frac(x - xa, yb - ya, xb - xa);
-}
-
-static u32 alpha_to_brightness(struct brightness_alpha_pair *lut, u32 lut_count,
-			       u32 alpha)
-{
-	int i;
-
-	if (!lut)
-		return 0;
-
-	for (i = 0; i < lut_count; i++)
-		if (lut[i].alpha <= alpha)
-			break;
-
-	if (!i)
-		return lut[i].brightness;
-	else if (i == lut_count)
-		return lut[i - 1].brightness;
-
-	return interpolate(alpha,
-			   lut[i - 1].alpha, lut[i].alpha,
-			   lut[i - 1].brightness, lut[i].brightness);
-}
-
-static u32 brightness_to_alpha(struct brightness_alpha_pair *lut, u32 lut_count,
-			       u32 brightness)
-{
-	int i;
-
-	if (!lut)
-		return 0;
-
-	for (i = 0; i < lut_count; i++)
-		if (lut[i].brightness >= brightness)
-			break;
-
-	if (!i)
-		return lut[i].alpha;
-	else if (i == lut_count)
-		return lut[i - 1].alpha;
-
-	return interpolate(brightness,
-			   lut[i - 1].brightness, lut[i].brightness,
-			   lut[i - 1].alpha, lut[i].alpha);
-}
-
-u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
-{
-	/* No dimming is required if HBM mode is enabled and device
-	 * is not in doze mode.
-	 */
-	if (panel->hbm_enabled && !panel->doze_status)
-		return 0;
-
-	return brightness_to_alpha(panel->fod_dim_lut, panel->fod_dim_lut_count,
-				   dsi_panel_get_backlight(panel));
-}
-
-u32 dsi_panel_get_dc_dim_alpha(struct dsi_panel *panel)
-{
-	u32 bl_lvl = dsi_panel_get_backlight(panel);
-
-	/* No dimming required if HBM mode is enabled by user or
-	 * device is in doze mode or backlight value is zero.
-	 */
-	if (panel->hbm_enabled || panel->doze_status || !bl_lvl)
-		return 0;
-
-	return brightness_to_alpha(panel->dc_dim_lut, panel->dc_dim_lut_count,
-				   bl_lvl);
-}
-
-int dsi_panel_set_hbm_enabled(struct dsi_panel *panel, bool status)
-{
-	int rc = 0;
-
-	if (!panel)
-		return -EINVAL;
-
-	dsi_panel_acquire_panel_lock(panel);
-
-	if (panel->hbm_enabled != status) {
-		panel->hbm_enabled = status;
-
-		if (dsi_panel_initialized(panel))
-			rc = dsi_panel_set_hbm(panel, status);
-	}
-
-	dsi_panel_release_panel_lock(panel);
-
-	return rc;
 }
 
 static int dsi_panel_bl_register(struct dsi_panel *panel)
@@ -2135,12 +1876,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dimming-brightness-command",
 	"qcom,mdss-dsi-brightness-command",
 	"qcom,mdss-dsi-dimming-enable-command",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command",
-	"qcom,mdss-dsi-dispparam-hbm-fod-on-command",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-command",
-	"qcom,mdss-dsi-doze-hbm-command",
-	"qcom,mdss-dsi-doze-lbm-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2177,12 +1912,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dimming-brightness-command-state",
 	"qcom,mdss-dsi-brightness-command-state",
 	"qcom,mdss-dsi-dimming-enable-command-state",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-hbm-on-command-state",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-doze-lbm-on-command-state",
-	"qcom,mdss-dsi-dispparam-hbm-fod-on-command-state",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-command-state",
-	"qcom,mdss-dsi-doze-hbm-command-state",
-	"qcom,mdss-dsi-doze-lbm-command-state",
 };
 
 static int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -2651,85 +2380,6 @@ error:
 	return rc;
 }
 
-static int dsi_panel_parse_dim_lut(struct dsi_panel *panel,
-				   struct dsi_parser_utils *utils,
-				   struct brightness_alpha_pair **plut,
-				   u32 *pcount, const char *lut_name)
-{
-	struct brightness_alpha_pair *lut;
-	u32 *array;
-	int count;
-	int len;
-	int rc;
-	int i;
-
-	len = utils->count_u32_elems(utils->data, lut_name);
-	if (len <= 0 || len % BRIGHTNESS_ALPHA_PAIR_LEN) {
-		pr_err("[%s] invalid number of elements, rc=%d\n",
-				panel->name, rc);
-		rc = -EINVAL;
-		goto count_fail;
-	}
-
-	array = kcalloc(len, sizeof(u32), GFP_KERNEL);
-	if (!array) {
-		pr_err("[%s] failed to allocate memory, rc=%d\n",
-				panel->name, rc);
-		rc = -ENOMEM;
-		goto alloc_array_fail;
-	}
-
-	rc = utils->read_u32_array(utils->data, lut_name, array, len);
-	if (rc) {
-		pr_err("[%s] failed to allocate memory, rc=%d\n",
-				panel->name, rc);
-		goto read_fail;
-	}
-
-	count = len / BRIGHTNESS_ALPHA_PAIR_LEN;
-	lut = kcalloc(count, sizeof(*lut), GFP_KERNEL);
-	if (!lut) {
-		rc = -ENOMEM;
-		goto alloc_lut_fail;
-	}
-
-	for (i = 0; i < count; i++) {
-		struct brightness_alpha_pair *pair = &lut[i];
-		pair->brightness = array[i * BRIGHTNESS_ALPHA_PAIR_LEN + 0];
-		pair->alpha = array[i * BRIGHTNESS_ALPHA_PAIR_LEN + 1];
-	}
-
-	*plut = lut;
-	*pcount = count;
-
-alloc_lut_fail:
-read_fail:
-	kfree(array);
-alloc_array_fail:
-count_fail:
-	if (rc) {
-		*plut = NULL;
-		*pcount = 0;
-	}
-	return rc;
-}
-
-static int dsi_panel_parse_fod_dim_lut(struct dsi_panel *panel,
-				       struct dsi_parser_utils *utils)
-{
-	return dsi_panel_parse_dim_lut(panel, utils, &panel->fod_dim_lut,
-				       &panel->fod_dim_lut_count,
-				       "qcom,disp-fod-dim-lut");
-}
-
-static int dsi_panel_parse_dc_dim_lut(struct dsi_panel *panel,
-				      struct dsi_parser_utils *utils)
-{
-	return dsi_panel_parse_dim_lut(panel, utils, &panel->dc_dim_lut,
-				       &panel->dc_dim_lut_count,
-				       "qcom,disp-dc-dim-lut");
-}
-
 static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -2815,40 +2465,6 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 
 	panel->bl_config.bl_inverted_dbv = utils->read_bool(utils->data,
 		"qcom,mdss-dsi-bl-inverted-dbv");
-
-	rc = utils->read_u32(utils->data, "qcom,disp-doze-lbm-backlight",
-				  &val);
-	if (rc) {
-		panel->bl_config.bl_doze_lpm = 0;
-		pr_debug("[%s] set doze lpm backlight to 0\n", panel->name);
-	} else {
-		panel->bl_config.bl_doze_lpm = val;
-	}
-
-	rc = utils->read_u32(utils->data, "qcom,disp-doze-hbm-backlight",
-				  &val);
-	if (rc) {
-		panel->bl_config.bl_doze_hbm = 0;
-		pr_debug("[%s] set doze hbm backlight to 0\n", panel->name);
-	} else {
-		panel->bl_config.bl_doze_hbm = val;
-	}
-
-	rc = dsi_panel_parse_fod_dim_lut(panel, utils);
-	if (rc)
-		pr_err("[%s failed to parse fod dim lut\n", panel->name);
-
-	panel->bl_config.bl_dc_thresh = 0;
-	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-panel-dc-threshold",
-				  &val);
-	if (!rc)
-		panel->bl_config.bl_dc_thresh = val;
-	else
-		pr_err("[%s] dc-threshold unspecified\n", panel->name);
-
-	rc = dsi_panel_parse_dc_dim_lut(panel, utils);
-	if (rc)
-		pr_err("[%s failed to parse dc dim lut\n", panel->name);
 
 	if (panel->bl_config.type == DSI_BACKLIGHT_PWM) {
 		rc = dsi_panel_parse_bl_pwm_config(panel);
@@ -3898,7 +3514,6 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 		return ERR_PTR(-ENOMEM);
 
 	panel->panel_of_node = of_node;
-	panel->doze_status = false;
 	panel->parent = parent;
 	panel->type = type;
 
@@ -3999,8 +3614,6 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 		pr_debug("failed to parse white point config, rc=%d\n", rc);
 
 	panel->power_mode = SDE_MODE_DPMS_OFF;
-	panel->doze_status = false;
-
 	drm_panel_init(&panel->drm_panel);
 
 	panel->fod_hbm_enabled = false;
@@ -4435,11 +4048,9 @@ int dsi_panel_pre_prepare(struct dsi_panel *panel)
 
 	mutex_lock(&panel->panel_lock);
 
-#if 0
 	/* If LP11_INIT is set, panel will be powered up during prepare() */
 	if (panel->lp11_init)
 		goto error;
-#endif
 
 	rc = dsi_panel_power_on(panel);
 	if (rc) {
@@ -4489,17 +4100,6 @@ error:
 	return rc;
 }
 
-int dsi_panel_enable_doze(struct dsi_panel *panel)
-{
-	/* Select doze mode according HBM state */
-	if (panel->hbm_enabled)
-		/* HBM enabled -> use HBM doze mode */
-		return DSI_PANEL_SEND(panel, DOZE_HBM);
-
-	/* HBM disabled -> use normal doze mode */
-	return DSI_PANEL_SEND(panel, DOZE_LBM);
-}
-
 int dsi_panel_set_lp1(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -4529,11 +4129,6 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 	if (rc)
 		pr_err("[%s] failed to send DSI_CMD_SET_LP1 cmd, rc=%d\n",
 			panel->name, rc);
-
-	rc = dsi_panel_enable_doze(panel);
-	if (rc)
-		pr_err("[%s] unable to enable doze mode, rc=%d\n",
-		       panel->name, rc);
 
 	if (panel->fod_hbm_enabled || panel->fod_backlight_flag) {
 		pr_debug("skip doze backlight,[hbm=%d][fod_bl=%d]\n",
@@ -4565,12 +4160,6 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 	if (rc)
 		pr_err("[%s] failed to send DSI_CMD_SET_LP2 cmd, rc=%d\n",
 		       panel->name, rc);
-
-	rc = dsi_panel_enable_doze(panel);
-	if (rc)
-		pr_err("[%s] unable to enable doze mode, rc=%d\n",
-		       panel->name, rc);
-
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4604,15 +4193,6 @@ int dsi_panel_set_nolp(struct dsi_panel *panel)
 	if (rc)
 		pr_err("[%s] failed to send DSI_CMD_SET_NOLP cmd, rc=%d\n",
 		       panel->name, rc);
-
-	/* Restore HBM mode when it is enabled by user */
-	if (panel->hbm_enabled) {
-		rc = dsi_panel_set_hbm(panel, true);
-		if (rc)
-			pr_err("[%s] unable to restore HBM mode, rc=%d\n",
-			       panel->name, rc);
-	}
-
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4630,17 +4210,10 @@ int dsi_panel_prepare(struct dsi_panel *panel)
 	mutex_lock(&panel->panel_lock);
 
 	if (panel->lp11_init) {
-#if 0
 		rc = dsi_panel_power_on(panel);
 		if (rc) {
 			pr_err("[%s] panel power on failed, rc=%d\n",
 			       panel->name, rc);
-			goto error;
-		}
-#endif
-		rc = dsi_panel_reset(panel);
-		if (rc) {
-			pr_err("[%s] failed to reset panel, rc=%d\n", panel->name, rc);
 			goto error;
 		}
 	}
@@ -4948,10 +4521,6 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	}
 	panel->panel_initialized = true;
 
-	/* Restore HBM mode if enabled by user */
-	if (panel->hbm_enabled)
-		dsi_panel_set_hbm(panel, panel->hbm_enabled);
-
 	panel->fod_hbm_enabled = false;
 	panel->fod_backlight_flag = false;
 	panel->dimming_enabled = false;
@@ -5078,7 +4647,6 @@ int dsi_panel_disable(struct dsi_panel *panel)
 		}
 	}
 	panel->panel_initialized = false;
-	panel->doze_status = false;
 	panel->fod_hbm_enabled = false;
 	panel->fod_backlight_flag = false;
 	panel->dimming_enabled = false;
@@ -5105,15 +4673,6 @@ int dsi_panel_unprepare(struct dsi_panel *panel)
 		goto error;
 	}
 
-	if (!panel->lp11_init) {
-		rc = dsi_panel_power_off(panel);
-		if (rc) {
-			pr_err("[%s] panel power_Off failed, rc=%d\n",
-			       panel->name, rc);
-			goto error;
-		}
-	}
-
 error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -5130,13 +4689,11 @@ int dsi_panel_post_unprepare(struct dsi_panel *panel)
 
 	mutex_lock(&panel->panel_lock);
 
-	if (panel->lp11_init) {
-		rc = dsi_panel_power_off(panel);
-		if (rc) {
-			pr_err("[%s] panel power_Off failed, rc=%d\n",
-			       panel->name, rc);
-			goto error;
-		}
+	rc = dsi_panel_power_off(panel);
+	if (rc) {
+		pr_err("[%s] panel power_Off failed, rc=%d\n",
+		       panel->name, rc);
+		goto error;
 	}
 error:
 	mutex_unlock(&panel->panel_lock);

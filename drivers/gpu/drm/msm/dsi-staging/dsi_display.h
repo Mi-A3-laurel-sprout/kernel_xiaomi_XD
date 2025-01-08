@@ -243,7 +243,7 @@ struct dsi_display {
 	struct dsi_lane_map lane_map;
 	int cmdline_topology;
 	int cmdline_timing;
-	int esd_error_flag_gpio;
+	int esd_error_flag_gpio; 
 	bool is_tpg_enabled;
 	bool poms_pending;
 	bool ulps_enabled;
@@ -285,7 +285,6 @@ struct dsi_display {
 	struct dsi_display_boot_param *boot_disp;
 
 	u32 te_source;
-	atomic_t fod_ui;
 };
 
 int dsi_display_dev_probe(struct platform_device *pdev);
@@ -722,20 +721,8 @@ int dsi_display_cont_splash_config(void *display);
  */
 int dsi_display_get_panel_vfp(void *display,
 	int h_active, int v_active);
-int dsi_lowpower_register_client(struct notifier_block *nb);
+int dsi_lowpower_register_client(struct notifier_block *nb); 
 
 int dsi_display_param_store(struct dsi_display *display, uint32_t param);
-
-/**
- * dsi_display_get_dim_layer_alpha - get global dimming layer alpha value
- * @display: Pointer to private display structure
- * @type: Type of dimming layer
- * @alpha: Out alpha value for dimming layer
- * Returns: 0 - Disable global dimming layer
- *	    1 - Enable global dimming layer using returned alpha value
- *	    error-code - Failure
- */
-int dsi_display_get_dim_layer_alpha(void *display, enum msm_dim_layer_type type,
-				    u32 *alpha);
 
 #endif /* _DSI_DISPLAY_H_ */

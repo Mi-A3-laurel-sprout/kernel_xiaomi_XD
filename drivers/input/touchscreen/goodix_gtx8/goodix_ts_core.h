@@ -47,7 +47,6 @@
 #include <linux/earlysuspend.h>
 #endif
 #ifdef CONFIG_FB
-#include <linux/msm_drm_notify.h>
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #endif
@@ -400,7 +399,7 @@ struct goodix_ts_esd {
  * @suspended: suspend/resume flag
  * @ts_notifier: generic notifier
  * @ts_esd: esd protector structure
- * @msm_drm_notifier: framebuffer notifier
+ * @fb_notifier: framebuffer notifier
  * @early_suspend: early suspend
  */
 struct goodix_ts_core {
@@ -433,8 +432,8 @@ struct goodix_ts_core {
 	struct goodix_ts_esd ts_esd;
 
 #ifdef CONFIG_FB
-	struct notifier_block msm_drm_notifier;
-	struct work_struct msm_drm_notify_work;
+	struct notifier_block fb_notifier;
+	struct work_struct fb_notify_work;
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	struct early_suspend early_suspend;
 #endif
@@ -725,7 +724,7 @@ int goodix_ts_register_notifier(struct notifier_block *nb);
 int goodix_generic_noti_callback(struct notifier_block *self,
 				unsigned long action, void *data);
 
-int goodix_ts_msm_drm_notifier_callback(struct notifier_block *self,
+int goodix_ts_fb_notifier_callback(struct notifier_block *self,
 			unsigned long event, void *data);
 
 extern void goodix_msg_printf(const char *fmt, ...);

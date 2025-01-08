@@ -119,9 +119,6 @@ struct dsi_backlight_config {
 	u32 bl_scale;
 	u32 bl_scale_ad;
 	bool bl_inverted_dbv;
-	u32 bl_doze_lpm;
-	u32 bl_doze_hbm;
-	u32 bl_dc_thresh;
 
 	int en_gpio;
 	/* PWM params */
@@ -176,12 +173,6 @@ struct drm_panel_esd_config {
 struct white_point {
 	int point_x;
 	int point_y;
-};
-
-#define BRIGHTNESS_ALPHA_PAIR_LEN 2
-struct brightness_alpha_pair {
-	u32 brightness;
-	u32 alpha;
 };
 
 struct dsi_panel {
@@ -243,21 +234,9 @@ struct dsi_panel {
 	char dsc_pps_cmd[DSI_CMD_PPS_SIZE];
 	enum dsi_dms_mode dms_mode;
 
-	bool doze_status;
-	bool hbm_enabled;
 	bool sync_broadcast_en;
 	int power_mode;
-	enum msm_dim_layer_type dimlayer_type;
 	enum dsi_panel_physical_type panel_type;
-
-	struct brightness_alpha_pair *fod_dim_lut;
-	u32 fod_dim_lut_count;
-
-	struct brightness_alpha_pair *dc_dim_lut;
-	u32 dc_dim_lut_count;
-	u32 dc_dim_alpha;
-	u32 hw_bl_lvl;
-	bool dc_dimming;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -385,45 +364,5 @@ struct dsi_panel *dsi_panel_ext_bridge_get(struct device *parent,
 int dsi_panel_parse_esd_reg_read_configs(struct dsi_panel *panel);
 
 void dsi_panel_ext_bridge_put(struct dsi_panel *panel);
-
-u32 dsi_panel_get_dc_dim_alpha(struct dsi_panel *panel);
-
-u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
-
-static inline bool dsi_panel_get_dc_dimming(struct dsi_panel *panel)
-{
-	bool status;
-
-	dsi_panel_acquire_panel_lock(panel);
-	status = panel->dc_dimming;
-	dsi_panel_release_panel_lock(panel);
-
-	return status;
-}
-
-static inline void dsi_panel_set_dc_dimming(struct dsi_panel *panel,
-					    bool enabled)
-{
-	dsi_panel_acquire_panel_lock(panel);
-	panel->dc_dimming = enabled;
-	dsi_panel_release_panel_lock(panel);
-}
-
-static inline bool dsi_panel_is_hbm_enabled(struct dsi_panel *panel)
-{
-	bool status;
-
-	dsi_panel_acquire_panel_lock(panel);
-	status = panel->hbm_enabled;
-	dsi_panel_release_panel_lock(panel);
-
-	return status;
-}
-
-int dsi_panel_set_hbm_enabled(struct dsi_panel *panel, bool status);
-
-enum msm_dim_layer_type dsi_panel_update_dimlayer(struct dsi_panel *panel,
-						  enum msm_dim_layer_type type,
-						  u32 alpha);
 
 #endif /* _DSI_PANEL_H_ */

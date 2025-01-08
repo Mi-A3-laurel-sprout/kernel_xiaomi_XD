@@ -19,9 +19,6 @@
 #include <linux/of_gpio.h>
 #include <linux/err.h>
 
-#include <linux/msm_drm_notify.h>
-#include <linux/kernfs.h>
-
 #include "msm_drv.h"
 #include "sde_connector.h"
 #include "msm_mmu.h"
@@ -66,10 +63,6 @@ static const struct of_device_id dsi_display_dt_match[] = {
 	{.compatible = "qcom,dsi-display"},
 	{}
 };
-
-struct dsi_display *primary_display;
-
-static struct kernfs_node *dsi_link;
 
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
@@ -345,7 +338,7 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 	pr_info("dimmingon\n");
 	break;
 	case BLIGHTNESS_400NIT:
-
+	
 	panel->fod_backlight_flag = false;
 	if(panel->sansumg_flag){
 	rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_OFF,
@@ -356,7 +349,7 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 	rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
 						2800);
 	pr_info("HBM BLIGHTNESS_400NIT gvo\n");
-
+	
 	}
 	panel->fod_backlight_flag = true;
 	break;
@@ -1511,8 +1504,9 @@ int dsi_display_set_power(struct drm_connector *connector,
 		int power_mode, void *disp)
 {
 	struct dsi_display *display = disp;
-	struct msm_drm_notifier notify_data;
 	int rc = 0;
+	int blank;
+	struct msm_drm_notifier notifier_data;
 	struct drm_device *dev = NULL;
 
 	pr_debug("power_mode = %s\n",power_mode);
@@ -1529,38 +1523,44 @@ int dsi_display_set_power(struct drm_connector *connector,
 			dev = connector->dev;
 	}
 
-	notify_data.data = &power_mode;
-	notify_data.id = MSM_DRM_PRIMARY_DISPLAY;
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		pr_info("enter SDE_MODE_DPMS_LP1\n");
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp1(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_LP2:
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		pr_info("enter SDE_MODE_DPMS_LP2\n");
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp2(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
-		if (display->panel->power_mode == SDE_MODE_DPMS_LP1 ||
-			display->panel->power_mode == SDE_MODE_DPMS_LP2) {
-			msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
-			rc = dsi_panel_set_nolp(display->panel);
-			msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
-        }
+		blank = MSM_DRM_BLANK_UNBLANK;
+		notifier_data.data = &blank;
+		pr_info("enter SDE_MODE_DPMS_NOLP\n");
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
+		rc = dsi_panel_set_nolp(display->panel);
 		break;
 	case SDE_MODE_DPMS_OFF:
+		blank = MSM_DRM_BLANK_POWERDOWN;
+		notifier_data.data = &blank;
+		pr_info("enter SDE_MODE_DPMS_OFF\n");
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
+		break;
 	default:
-		return rc;
+		break;
 	}
 
-	pr_debug("Power mode transition from %d to %d %s",
-		 display->panel->power_mode, power_mode,
-		 rc ? "failed" : "successful");
-	if (!rc)
-		display->panel->power_mode = power_mode;
+	dev->pre_sde_power_mode = power_mode;
 
 	return rc;
 }
@@ -5505,170 +5505,17 @@ error:
 	return rc;
 }
 
-static ssize_t sysfs_fod_ui_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	bool status;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	status = atomic_read(&display->fod_ui);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", status);
-}
-
-static ssize_t hbm_show(struct device *dev, struct device_attribute *attr,
-			char *buf)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-
-	if (!display->panel) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	return scnprintf(buf, PAGE_SIZE, "%d\n",
-			 dsi_panel_is_hbm_enabled(display->panel));
-}
-
-static ssize_t hbm_store(struct device *dev, struct device_attribute *attr,
-			 const char *buf, size_t count)
-{
-	struct dsi_display *display = dev_get_drvdata(dev);
-	bool status;
-	int rc;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtobool(buf, &status);
-	if (rc) {
-		pr_err("Failed to parse value, rc=%d\n", rc);
-		return rc;
-	}
-
-	rc = dsi_panel_set_hbm_enabled(display->panel, status);
-	if (rc)
-		pr_err("Failed to %s HBM mode, rc=%d\n",
-		       status ? "enable" : "disable", rc);
-
-	return !rc ? count : rc;
-}
-
-static ssize_t dc_dimming_show(struct device *dev,
-			       struct device_attribute *attr,
-			       char *buf)
-{
-	struct dsi_display *display;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	return snprintf(buf, PAGE_SIZE, "%d\n",
-			dsi_panel_get_dc_dimming(display->panel));
-}
-
-static ssize_t dc_dimming_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	bool status;
-	int rc;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtobool(buf, &status);
-	if (rc) {
-		pr_err("%s: kstrtobool failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	dsi_panel_set_dc_dimming(display->panel, status);
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_ui, 0444,
-			sysfs_fod_ui_read,
-			NULL);
-static DEVICE_ATTR_RW(hbm);
-static DEVICE_ATTR_RW(dc_dimming);
-
-static struct attribute *display_fs_attrs[] = {
-	&dev_attr_fod_ui.attr,
-	&dev_attr_hbm.attr,
-	&dev_attr_dc_dimming.attr,
-	NULL,
-};
-static struct attribute_group display_fs_attrs_group = {
-	.attrs = display_fs_attrs,
-};
-
 static int dsi_display_sysfs_init(struct dsi_display *display)
 {
 	int rc = 0;
 	struct device *dev = &display->pdev->dev;
-	struct device *soc_dev = dev->parent;
-
-	if (!soc_dev)
-		pr_err("[%s] unable to determine parent device\n", display->name);
-	else {
-		struct kobject *dsi_kobj = &dev->kobj;
-		struct kernfs_node *dsi_node = dsi_kobj->sd;
-
-		kernfs_get(dsi_node);
-
-		dsi_link = kernfs_create_link(soc_dev->kobj.sd, "soc:qcom,dsi-display-primary",
-					      dsi_node);
-		if (IS_ERR_OR_NULL(dsi_link))
-			pr_err("[%s] unable to create dsi-display symlink\n", display->name);
-
-		kernfs_put(dsi_node);
-	}
-
-	rc = sysfs_create_group(&dev->kobj, &display_fs_attrs_group);
-	if (rc) {
-		pr_err("[%s] failed to create display device attributes\n",
-		       display->name);
-
-		return rc;
-	}
 
 	if (display->panel->panel_mode == DSI_OP_CMD_MODE)
 		rc = sysfs_create_group(&dev->kobj,
 			&dynamic_dsi_clock_fs_attrs_group);
 
-	if (rc) {
-		pr_err("[%s] failed to create display device attributes\n",
-		       display->name);
-		goto err_dyn_dsi_attr;
-	}
-
-	pr_debug("[%s] dsi_display_sysfs_init:%d,panel mode:%d\n",
-		display->name, rc, display->panel->panel_mode);	
-
-	return 0;
-
-err_dyn_dsi_attr:
-	sysfs_remove_group(&dev->kobj, &display_fs_attrs_group);
-
 	return rc;
+
 }
 
 static int dsi_display_sysfs_deinit(struct dsi_display *display)
@@ -5679,20 +5526,8 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 		sysfs_remove_group(&dev->kobj,
 			&dynamic_dsi_clock_fs_attrs_group);
 
-	sysfs_remove_group(&dev->kobj, &display_fs_attrs_group);
-
-	if (!IS_ERR_OR_NULL(dsi_link))
-		kernfs_remove_by_name(dsi_link->parent, dsi_link->name);
-
 	return 0;
 
-}
-
-static void dsi_display_set_fod_ui(struct dsi_display *display, bool status)
-{
-	struct device *dev = &display->pdev->dev;
-	atomic_set(&display->fod_ui, status);
-	sysfs_notify(&dev->kobj, NULL, "fod_ui");
 }
 
 /**
@@ -5993,7 +5828,6 @@ static void dsi_display_unbind(struct device *dev,
 	}
 
 	atomic_set(&display->clkrate_change_pending, 0);
-	atomic_set(&display->fod_ui, false);
 	(void)dsi_display_sysfs_deinit(display);
 	(void)dsi_display_debugfs_deinit(display);
 
@@ -7065,7 +6899,6 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
-	primary_display = display;
 
 error:
 	if (rc)
@@ -7120,40 +6953,6 @@ int dsi_display_get_panel_vfp(void *dsi_display,
 		}
 	}
 	mutex_unlock(&display->display_lock);
-
-	return rc;
-}
-
-int dsi_display_get_dim_layer_alpha(void *dsi_display,
-				    enum msm_dim_layer_type type, u32 *alpha)
-{
-	struct dsi_display *display = dsi_display;
-	int rc = -ENOTSUPP;
-
-	dsi_panel_acquire_panel_lock(display->panel);
-
-	switch (type) {
-	case MSM_DIM_LAYER_FOD:
-		/* Fetch alpha value for dimming layer */
-		*alpha = dsi_panel_get_fod_dim_alpha(display->panel);
-
-		/* Return 1 regardless of returned alpha value because
-		 * return value determine also type of global dimming
-		 * layer.
-		 */
-		rc = 1;
-		break;
-	case MSM_DIM_LAYER_TOP:
-		/* Enable dimming layer if DC dimming is enabled */
-		rc = display->panel->dc_dimming ? 1 : 0;
-		if (rc)
-			*alpha = dsi_panel_get_dc_dim_alpha(display->panel);
-		break;
-	default:
-		pr_warn("Unknown dimming layer type\n");
-	}
-
-	dsi_panel_release_panel_lock(display->panel);
 
 	return rc;
 }
@@ -8081,21 +7880,8 @@ int dsi_display_pre_kickoff(struct drm_connector *connector,
 		struct dsi_display *display,
 		struct msm_display_kickoff_params *params)
 {
-	enum msm_dim_layer_type type = params->dim_layer_type;
-	enum msm_dim_layer_type prev_type;
 	int rc = 0;
 	int i;
-
-	/* pass current dimming layer type to panel */
-	prev_type = dsi_panel_update_dimlayer(display->panel, type,
-					      params->dim_layer_alpha);
-
-	/* notify userspace if we are switching from or to FOD dimming
-	 * layer type
-	 */
-	if ((type == MSM_DIM_LAYER_FOD || prev_type == MSM_DIM_LAYER_FOD) &&
-	    (type != prev_type))
-		dsi_display_set_fod_ui(display, type == MSM_DIM_LAYER_FOD);
 
 	/* check and setup MISR */
 	if (display->misr_enable)
