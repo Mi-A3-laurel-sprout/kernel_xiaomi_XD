@@ -215,6 +215,7 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= msm_sdw/
 	obj-y	+= wcd9360/
 	obj-y	+= wcd937x/
+	obj-y	+= bolero/
 endif
 
 ifeq ($(CONFIG_SND_SOC_GCOV), y)
@@ -252,7 +253,6 @@ mbhc_dlkm-y := $(MBHC_OBJS)
 # Module information used by KBuild framework
 obj-$(CONFIG_SND_SOC_MAX98937) += max98937_dlkm.o
 max98937_dlkm-y := $(MAX98937_OBJS)
-
 
 obj-$(CONFIG_SND_SOC_MSM_HDMI_CODEC_RX) += hdmi_dlkm.o
 hdmi_dlkm-y := $(HDMICODEC_OBJS)

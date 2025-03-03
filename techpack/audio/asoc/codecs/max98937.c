@@ -1,7 +1,7 @@
 /*
  * max98927.c -- ALSA SoC Stereo MAX98927 driver
  * Copyright 2013-18 Maxim Integrated Products
- * Copyright (C) 2020 XiaoMi, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -23,10 +23,6 @@
 #include <linux/debugfs.h>
 #include <linux/miscdevice.h>
 #include "max98937.h"
-
-// Force disable the spammy logging
-#undef pr_info
-#define pr_info pr_debug
 
 /* #define snd_soc_kcontrol_codec snd_kcontrol_chip */
 /* #define snd_soc_dapm_to_codec(w->dapm)  w->codec */
@@ -572,7 +568,6 @@ struct param_info {
 	char name[80];
 	int q_val;
 };
-#endif
 
 //MULTIPLE = 3.33,  rdc/(1<<27) * MULTIPLE = [min, max] ohm
 //
@@ -594,6 +589,7 @@ struct param_info {
 #define EAR_RDC_MAX  (1370391217) //34 / 3.33 * (1<<27)
 #define EAR_RDC_DEFAULT (1168863097)  // 29 / 3.33 * 134217728
 */
+#endif
 
 static struct {
 	bool l_calib_stat;
@@ -775,7 +771,6 @@ static int max989xx_calib_get(uint32_t* calib_value, int ch)
 	return found;
 }
 
-#ifdef CONFIG_DEBUG_FS
 static int max989xx_calib_save (uint32_t calib_value, int ch)
 {
 	struct file *pfile = NULL;
@@ -811,7 +806,6 @@ static int max989xx_calib_save (uint32_t calib_value, int ch)
 
 	return ret;
 }
-#endif
 
 static inline bool rdc_check_valid(uint32_t rdc, int ch)
 {
@@ -1085,10 +1079,10 @@ static ssize_t max989xx_dbgfs_boardid_read(struct file *file,
 	int ret = 9;
 	char *board_str = NULL;
 
-    board_str = strstr(saved_command_line, "board_id");
-    if (board_str != NULL) {
-        strncpy(str, board_str+9,ret);
-    }
+	board_str = strstr(saved_command_line, "board_id");
+	if (board_str != NULL) {
+		strncpy(str, board_str+9,ret);
+	}
 	pr_err("board_str str is %s\n",str);
 	return copy_to_user(user_buf, str, ret);
 }

@@ -1,5 +1,5 @@
 /* Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2020 XiaoMi, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -103,7 +103,7 @@ static int wcd_measure_adc_continuous(struct wcd_mbhc *mbhc)
 	/* Get voltage from ADC result */
 	output_mv = wcd_get_voltage_from_adc(adc_result,
 					     wcd_mbhc_get_micbias(mbhc));
-	pr_debug("%s: adc_result: 0x%x, output_mv: %d\n",
+	pr_err("%s: adc_result: 0x%x, output_mv: %d\n",
 		 __func__, adc_result, output_mv);
 
 	return output_mv;
@@ -830,8 +830,8 @@ correct_plug_type:
 		 */
 		if ((plug_type == MBHC_PLUG_TYPE_HEADSET) ||
 		    (plug_type == MBHC_PLUG_TYPE_ANC_HEADPHONE)) {
-			pr_debug("%s: plug_type:0x%x already reported\n",
-				 __func__, mbhc->current_plug);
+			pr_err("%s: plug_type:0x%x already reported, output_mv %d\n",
+				 __func__, mbhc->current_plug, output_mv);
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_MODE, 0);
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, 0);
 			goto enable_supply;
@@ -853,9 +853,9 @@ report:
 		goto exit;
 	}
 
-	pr_debug("%s: Valid plug found, plug type %d wrk_cmpt %d btn_intr %d\n",
+	pr_err("%s: Valid plug found, plug type %d wrk_cmpt %d btn_intr %d, output_mv %d\n",
 			__func__, plug_type, wrk_complete,
-			mbhc->btn_press_intr);
+			mbhc->btn_press_intr, output_mv);
 
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_MODE, 0);
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, 0);
@@ -1030,6 +1030,7 @@ static irqreturn_t wcd_mbhc_adc_hs_rem_irq(int irq, void *data)
 exit:
 	WCD_MBHC_RSC_UNLOCK(mbhc);
 	pr_debug("%s: leave\n", __func__);
+	pr_err("%s: output_mv %d, adc_threshold %d\n", __func__, output_mv, adc_threshold);
 	return IRQ_HANDLED;
 }
 
@@ -1039,7 +1040,7 @@ static irqreturn_t wcd_mbhc_adc_hs_ins_irq(int irq, void *data)
 	u8 clamp_state = 0;
 	u8 clamp_retry = WCD_MBHC_FAKE_INS_RETRY;
 
-	pr_debug("%s: enter\n", __func__);
+	printk("%s: enter\n", __func__);
 
 	/*
 	 * ADC COMPLETE and ELEC_REM interrupts are both enabled for HEADPHONE,
